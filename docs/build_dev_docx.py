@@ -207,6 +207,13 @@ def new_num_id(doc, abstract_id):
     ref = OxmlElement("w:abstractNumId")
     ref.set(qn("w:val"), str(abstract_id))
     num.append(ref)
+    # 每个列表实例从 1 重新编号，避免不同章节的编号列表连续累计
+    lvl_override = OxmlElement("w:lvlOverride")
+    lvl_override.set(qn("w:ilvl"), "0")
+    start_override = OxmlElement("w:startOverride")
+    start_override.set(qn("w:val"), "1")
+    lvl_override.append(start_override)
+    num.append(lvl_override)
     numbering.append(num)
     return new_id
 

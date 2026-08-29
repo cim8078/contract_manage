@@ -23,3 +23,6 @@ Thumbs.db
 
 # 数据库历史备份（体积大，不同步到 GitHub）
 backups/
+
+# 本地操作说明
+Github说明.txt
