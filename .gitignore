@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# 本地运行产生的日志 / 临时文件
+*.log
+app.log*
+cookies.txt
+_serve_tmp.py
+
+# 浏览器自动化缓存
+.playwright-cli/
+
+# 编辑器 / 系统文件
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Codex 本地配置（含可能的敏感信息）
+.agents/
+.codex/
+
+# 数据库历史备份（体积大，不同步到 GitHub）
+backups/

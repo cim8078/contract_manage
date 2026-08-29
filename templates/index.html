@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>潭合同-台账管理系统</title>
+<link href="/static/vendor/css/bootstrap.min.css" rel="stylesheet">
+<link href="/static/vendor/css/bootstrap-icons.css" rel="stylesheet">
+<script src="/static/vendor/js/vue.global.prod.js"></script>
+<script src="/static/vendor/js/chart.umd.min.js"></script>
+<script src="/static/vendor/js/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Microsoft YaHei','Segoe UI',sans-serif}
+body{background:#F0F4FA;min-height:100vh}
+.login-page{min-height:100vh;background:linear-gradient(135deg,#0A2E5C 0%,#1E90FF 100%);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.login-page::before{content:"";position:absolute;width:200%;height:200%;top:-50%;left:-50%;background:radial-gradient(circle,rgba(255,255,255,.03) 1px,transparent 1px);background-size:40px 40px;animation:drift 20s linear infinite}
+@keyframes drift{0%{transform:translate(0,0)}100%{transform:translate(-40px,-40px)}}
+.login-card{width:420px;padding:40px;background:rgba(255,255,255,.1);border-radius:20px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.15);box-shadow:0 25px 50px rgba(0,0,0,.25);position:relative;z-index:1;text-align:center}
+.login-logo{width:80px;height:80px;border-radius:12px;object-fit:cover;margin:0 auto 16px;display:block}
+.logo-placeholder{width:80px;height:80px;border:2px dashed rgba(255,255,255,.5);border-radius:12px;display:none;align-items:center;justify-content:center;margin:0 auto 16px;color:rgba(255,255,255,.5);font-size:14px}
+.login-title{font-size:24px;font-weight:700;color:#fff;margin:0 0 4px}
+.login-subtitle{font-size:14px;color:rgba(255,255,255,.7);margin-bottom:28px}
+.login-card .form-control{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;padding:12px 16px;border-radius:10px;font-size:15px;transition:all .3s}
+.login-card .form-control:focus{background:rgba(255,255,255,.18);border-color:#4FC3F7;box-shadow:0 0 20px rgba(79,195,247,.3);color:#fff}
+.login-card .form-control::placeholder{color:rgba(255,255,255,.5)}
+.login-card .form-label{color:rgba(255,255,255,.85);font-size:14px;font-weight:500;margin-bottom:4px}
+.login-btn{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#1E90FF,#0A2E5C);color:#fff;font-size:16px;font-weight:600;cursor:pointer;transition:all .3s;margin-top:8px}
+.login-btn:hover{box-shadow:0 0 25px rgba(30,144,255,.5);transform:translateY(-1px)}
+.login-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.login-error{color:#ff6b6b;font-size:13px;margin-top:8px;min-height:20px}
+.login-copyright{position:absolute;bottom:18px;left:0;width:100%;text-align:center;color:rgba(255,255,255,.6);font-size:13px;letter-spacing:.5px;z-index:1;padding:0 16px}
+.app-layout{display:flex;min-height:100vh}
+.sidebar{width:220px;background:#0F2D52;color:#fff;display:flex;flex-direction:column;flex-shrink:0;transition:width .3s;position:fixed;top:60px;left:0;bottom:0;z-index:100;overflow-y:auto}
+.sidebar.collapsed{width:60px}
+.sidebar .menu-item{display:flex;align-items:center;padding:14px 20px;cursor:pointer;transition:all .2s;color:rgba(255,255,255,.7);border-left:3px solid transparent;font-size:15px;text-decoration:none}
+.sidebar .menu-item > * + *{margin-left:12px}
+.sidebar .menu-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.sidebar .menu-item.active{background:rgba(30,144,255,.2);color:#4FC3F7;border-left-color:#4FC3F7}
+.sidebar .menu-item i{font-size:20px;width:24px;text-align:center}
+.sidebar.collapsed .menu-item span{display:none}
+.sidebar-toggle{background:transparent;border:none;color:rgba(255,255,255,.5);padding:10px 20px;cursor:pointer;text-align:left;font-size:20px}
+.sidebar-toggle:hover{color:#fff}
+.topnav{height:60px;background:#0A1E3C;color:#fff;display:flex;align-items:center;padding:0 20px;position:fixed;top:0;left:0;right:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+.topnav .nav-left{display:flex;align-items:center;flex:1}
+.topnav .nav-left > * + *{margin-left:10px}
+.topnav .nav-logo{width:32px;height:32px;border-radius:6px;object-fit:cover}
+.topnav .nav-title{font-size:18px;font-weight:700}
+.topnav .nav-unit{font-size:12px;color:rgba(255,255,255,.7);margin-left:12px;padding-left:12px;border-left:1px solid rgba(255,255,255,.2)}
+.topnav .nav-right{display:flex;align-items:center;font-size:14px}
+.topnav .nav-right > * + *{margin-left:16px}
+.topnav .nav-right .user-info{color:rgba(255,255,255,.85)}
+.topnav .logout-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .2s}
+.topnav .logout-btn:hover{background:rgba(255,255,255,.2)}
+.main-content{margin-left:220px;margin-top:60px;flex:1;padding:24px;min-height:calc(100vh - 60px);transition:margin-left .3s}
+.main-content.expanded{margin-left:60px}
+.stat-card{background:#fff;border-radius:14px;padding:20px 14px;box-shadow:0 2px 12px rgba(0,0,0,.06);display:flex;align-items:center;transition:transform .2s,box-shadow .2s;height:100%}
+.stat-card > * + *{margin-left:16px}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,.1)}
+.stat-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px}
+.stat-icon.blue{background:rgba(30,144,255,.12);color:#1E90FF}
+.stat-icon.green{background:rgba(76,175,80,.12);color:#4CAF50}
+.stat-icon.orange{background:rgba(255,152,0,.12);color:#FF9800}
+.stat-icon.red{background:rgba(244,67,54,.12);color:#f44336}
+.stat-icon.purple{background:rgba(156,39,176,.12);color:#9C27B0}
+.stat-info h3{font-size:28px;font-weight:700;margin:0;color:#1a1a2e;line-height:1.2;white-space:nowrap}
+.stat-info p{margin:2px 0 0;font-size:13px;color:#666;white-space:nowrap}
+.white-card{background:#fff;border-radius:14px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:20px}
+.table-custom{width:100%;border-collapse:collapse;font-size:14px}
+.table-custom thead{background:linear-gradient(135deg,#0A2E5C,#1E90FF);color:#fff}
+.table-custom th{padding:12px 14px;font-weight:600;font-size:13px;white-space:nowrap;text-align:left}
+.table-custom td{padding:10px 14px;border-bottom:1px solid #eef2f7;color:#333}
+.table-custom tbody tr:nth-child(even){background:#F8FAFE}
+.table-custom tbody tr:hover{background:#E3F0FF}
+.contracts-table th,.contracts-table td{text-align:center}
+.contracts-table td:last-child{white-space:nowrap;text-align:center}
+.contracts-table td:last-child button{vertical-align:middle}
+.table-custom .text-orange{color:#FF9800;font-weight:600}
+.table-custom .text-red{color:#f44336;font-weight:600}
+.pagination-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 0;font-size:14px;color:#666;flex-wrap:wrap;gap:10px}
+.pagination-bar .page-info{display:flex;align-items:center}
+.pagination-bar .page-info > * + *{margin-left:8px}
+.pagination-bar select{padding:4px 8px;border:1px solid #d0d7de;border-radius:6px;font-size:13px}
+.pagination-bar .page-btns{display:flex}
+.pagination-bar .page-btns > * + *{margin-left:4px}
+.pagination-bar .page-btns button{padding:6px 12px;border:1px solid #d0d7de;border-radius:6px;background:#fff;color:#555;cursor:pointer;font-size:13px;transition:all .15s}
+.pagination-bar .page-btns button:hover{border-color:#1E90FF;color:#1E90FF}
+.pagination-bar .page-btns button.active{background:#1E90FF;color:#fff;border-color:#1E90FF}
+.pagination-bar .page-btns button:disabled{opacity:.4;cursor:not-allowed}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-content{background:#fff;border-radius:16px;width:90%;max-width:900px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:modalIn .25s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{padding:20px 24px;border-bottom:1px solid #eef2f7;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:10;border-radius:16px 16px 0 0}
+.modal-header h5{font-size:18px;font-weight:700;color:#0A2E5C;margin:0}
+.modal-close{background:none;border:none;font-size:24px;color:#999;cursor:pointer;padding:0;line-height:1}
+.modal-close:hover{color:#333}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid #eef2f7;display:flex;justify-content:flex-end;position:sticky;bottom:0;background:#fff;border-radius:0 0 16px 16px}
+.modal-footer > * + *{margin-left:10px}
+.btn-toolbar{display:flex;align-items:center}
+.btn-toolbar > * + *{margin-left:8px}
+.icon-msg-row{display:flex;align-items:flex-start}
+.icon-msg-row > * + *{margin-left:12px}
+.form-label-sm{font-size:13px;color:#555;margin-bottom:3px;font-weight:500}
+.manage-dept-box{display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:1px solid #d0d7de;border-radius:8px;background:#f8fafc;max-height:180px;overflow:auto}
+.manage-dept-item{display:inline-flex;align-items:center;font-size:12px;color:#333;background:#fff;border:1px solid #dde3ea;border-radius:6px;padding:4px 8px;cursor:pointer;user-select:none}
+.manage-dept-item > * + *{margin-left:4px}
+.manage-dept-item:hover{border-color:#1E90FF}
+.manage-dept-item input{accent-color:#1E90FF}
+.form-control-sm-custom{padding:8px 12px;border:1px solid #d0d7de;border-radius:8px;font-size:13px;transition:border-color .2s,box-shadow .2s;width:100%}
+.form-control-sm-custom:focus{border-color:#1E90FF;box-shadow:0 0 0 3px rgba(30,144,255,.12);outline:none}
+.form-select-sm-custom{padding:8px 12px;border:1px solid #d0d7de;border-radius:8px;font-size:13px;background:#fff;width:100%}
+.form-control-sm-custom[readonly]{background:#f5f7fa;cursor:not-allowed}
+.btn-primary-custom{background:linear-gradient(135deg,#1E90FF,#0A2E5C);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-primary-custom:hover{box-shadow:0 4px 15px rgba(30,144,255,.4);transform:translateY(-1px)}
+.btn-outline-custom{background:transparent;border:1px solid #1E90FF;color:#1E90FF;padding:7px 19px;border-radius:8px;font-size:14px;cursor:pointer;transition:all .2s}
+.btn-outline-custom:hover{background:rgba(30,144,255,.08)}
+.btn-danger-custom{background:linear-gradient(135deg,#ff6b6b,#ee5a24);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-danger-custom:hover{box-shadow:0 4px 15px rgba(238,90,36,.4)}
+.btn-archive-custom{background:linear-gradient(135deg,#ffc24b,#f59f00);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-archive-custom:hover{box-shadow:0 4px 15px rgba(245,159,0,.4)}
+.btn-sm-custom{padding:5px 12px;font-size:12px;border-radius:6px}
+        .btn-height-match{height:36px;display:inline-flex;align-items:center;justify-content:center}
+.attach-item{display:flex;align-items:center;padding:5px 8px;border:1px solid #e3e8f0;border-radius:6px;background:#f8fafe;font-size:12px;margin-bottom:4px;word-break:break-all}
+.attach-item > * + *{margin-left:6px}
+.attach-item a{flex:1;min-width:0}
+.attach-size{color:#999;font-size:11px;white-space:nowrap}
+.attach-remove{background:none;border:none;color:#999;font-size:16px;line-height:1;cursor:pointer;padding:0 2px}
+.attach-remove:hover{color:#f44336}
+.reminder-item{padding:12px 16px;border-left:4px solid #FF9800;background:#FFF8E1;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.reminder-item .ri-info{display:flex;font-size:13px;color:#555;flex-wrap:wrap;flex:1;min-width:0}
+.reminder-item .ri-info > * + *{margin-left:16px}
+.reminder-item .ri-info > *{margin-bottom:4px}
+.reminder-item .ri-info strong{color:#333}
+.reminder-item .ri-actions{display:flex;flex-shrink:0;align-items:center}
+.reminder-item .ri-actions > * + *{margin-left:6px}
+.remaining-tag{padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600}
+.remaining-tag.warning{background:#FF9800;color:#fff}
+.remaining-tag.danger{background:#f44336;color:#fff}
+.remaining-tag.safe{background:#4CAF50;color:#fff}
+.remind-hint{margin-left:16px;font-size:13px;color:#555;font-weight:400}
+.search-toggle{cursor:pointer;display:flex;align-items:center;color:#1E90FF;font-weight:500;font-size:14px;padding:4px 0;user-select:none}
+.search-toggle > * + *{margin-left:6px}
+.search-panel{overflow:hidden;transition:max-height .3s ease;max-height:0}
+.search-panel.open{max-height:1200px}
+.chart-container{position:relative;height:300px;width:100%}
+.empty-state{text-align:center;padding:40px;color:#999}
+.empty-state i{font-size:48px;color:#d0d7de;margin-bottom:12px}
+.empty-state p{font-size:15px;margin:0}
+.toast-container{position:fixed;top:20px;right:20px;z-index:9999}
+.toast-msg{padding:12px 20px;border-radius:10px;color:#fff;font-size:14px;margin-bottom:8px;box-shadow:0 4px 15px rgba(0,0,0,.15);animation:slideInRight .3s ease;display:flex;align-items:center;min-width:250px}
+.toast-msg > * + *{margin-left:8px}
+.toast-msg.success{background:linear-gradient(135deg,#4CAF50,#2E7D32)}
+.toast-msg.error{background:linear-gradient(135deg,#f44336,#c62828)}
+.toast-msg.info{background:linear-gradient(135deg,#1E90FF,#0A2E5C)}
+@keyframes slideInRight{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+::-webkit-scrollbar{width:6px;background:#f1f1f1}
+::-webkit-scrollbar-thumb{background:#c1c8d0;border-radius:3px}
+.confirm-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:center;justify-content:center}
+.confirm-dialog{background:#fff;border-radius:14px;padding:24px;width:400px;max-width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center}
+.confirm-dialog h5{margin:0 0 8px;color:#0A2E5C}
+.confirm-dialog p{color:#666;font-size:14px;margin:0 0 20px}
+.confirm-dialog .btns{display:flex;justify-content:center}
+.confirm-dialog .btns > * + *{margin-left:10px}
+.stats-filter-panel{background:#f8fafe;border-radius:10px;padding:16px;margin-bottom:16px;border:1px solid #eef2f7}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+
+/* ---- Global Loading ---- */
+.loading-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,45,82,.55);z-index:9998;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);animation:fadeIn .25s ease}
+.loading-spinner{width:56px;height:56px;border:5px solid rgba(255,255,255,.2);border-top-color:#4FC3F7;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+/* ---- Page Transitions ---- */
+.page-enter-active,.page-leave-active{transition:opacity .2s ease,transform .2s ease}
+.page-enter-from{opacity:0;transform:translateY(12px)}
+.page-leave-to{opacity:0;transform:translateY(-8px)}
+/* ---- Form Validation ---- */
+.form-error{color:#f44336;font-size:12px;margin-top:2px;min-height:18px;transition:opacity .2s}
+.form-control-sm-custom.is-invalid,.form-select-sm-custom.is-invalid{border-color:#f44336!important;box-shadow:0 0 0 3px rgba(244,67,54,.1)!important}
+/* ---- Badge ---- */
+.menu-badge{background:#FF9800;color:#fff;font-size:11px;padding:1px 8px;border-radius:10px;margin-left:auto;font-weight:600;min-width:20px;text-align:center}
+.sidebar.collapsed .menu-badge{display:none}
+/* ---- Empty State Enhanced ---- */
+.empty-state-icon{font-size:56px;color:#d0d7de;margin-bottom:8px;line-height:1}
+/* ---- Archive ---- */
+.badge-archive{display:inline-flex;align-items:center;background:#e8f0fe;color:#1E90FF;border:1px solid #b6d4fe;border-radius:10px;padding:2px 8px;font-size:12px;white-space:nowrap}
+.badge-archive > * + *{margin-left:4px}
+.archive-banner{background:#fff7e6;border:1px solid #ffd591;color:#d48806;border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:12px;display:flex;align-items:center}
+.readonly-tag{display:inline-flex;align-items:center;color:#999;font-size:12px}
+.readonly-tag > * + *{margin-left:4px}
+.table-custom tbody tr.row-archived{opacity:.62;background:#f2f5f9}
+.import-summary-bar{display:flex;align-items:center;gap:14px;padding:12px 16px;background:#F0F4FA;border:1px solid #DCE7F5;border-radius:8px;margin-bottom:14px;font-size:14px;color:#0A2E5C;flex-wrap:wrap}
+.badge-ok{display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;background:#E8F5E9;color:#2E7D32;font-weight:600}
+.badge-warn{display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;background:#FFF3E0;color:#E65100;font-weight:600}
+.badge-error{display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;background:#FFEBEE;color:#C62828;font-weight:600}
+
+.table-custom tbody tr.row-archived:hover{background:#eef3f9}
+/* ---- Confirm Dialog ---- */
+.confirm-dialog{animation:modalIn .25s ease}
+/* ---- Chart Empty ---- */
+.chart-empty{height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#aaa;font-size:14px;border:2px dashed #eef2f7;border-radius:12px}
+/* ---- Responsive enhancements ---- */
+@media(max-width:1366px){.main-content{padding:16px}.white-card{padding:16px}}
+@media(max-width:768px){.sidebar{width:60px!important}.sidebar .menu-item span{display:none!important}.sidebar .menu-item{padding:14px;justify-content:center}.sidebar .menu-badge{display:none!important}.main-content{margin-left:60px!important}.stats-grid{grid-template-columns:1fr!important}}
+/* ---- Scrollable table fix ---- */
+.table-wrap{overflow-x:auto;margin:0 -4px}
+/* ---- Auto-hide toast ---- */
+.toast-msg{cursor:pointer}
+
+/* 合同打印视图采用独立新标签页（见 printContractPdf），样式内嵌于打印窗口 */
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="toast-container" id="toastContainer"></div>
+  <!-- Global Loading -->
+  <div class="loading-overlay" v-if="globalLoading">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <div class="confirm-overlay" v-if="confirm.show" @click.self="confirmCancel">
+    <div class="confirm-dialog">
+      <h5>{{ confirm.title }}</h5>
+      <p>{{ confirm.message }}</p>
+      <div v-if="confirm.needReason" style="text-align:left;margin:0 0 16px">
+        <label style="font-size:13px;font-weight:600;color:#333">删除原因 <span style="color:#f44336">*</span></label>
+        <textarea class="form-control" v-model="confirm.reason" rows="3" style="margin-top:6px" placeholder="请填写删除原因（必填）" @input="confirm.reasonError=''"></textarea>
+        <div v-if="confirm.reasonError" class="form-error">{{ confirm.reasonError }}</div>
+      </div>
+      <div class="btns">
+        <button class="btn-outline-custom btn-sm-custom" @click="confirmCancel">取消</button>
+        <button class="btn-danger-custom btn-sm-custom" @click="confirmOk" :disabled="confirm.loading">{{ confirm.btnText || '确定' }}</button>
+      </div>
+    </div>
+  </div>
+  <div class="login-page" v-if="!store.user">
+    <div class="login-card">
+      <img src="/static/logo.jpg" class="login-logo" @error="logoError" alt="LOGO">
+      <div class="logo-placeholder"><i class="bi bi-image"></i> LOGO</div>
+      <div class="login-title">潭合同­­­­­-台账管理系统</div>
+      <div class="login-subtitle">湘潭市机关事务管理局</div>
+      <div style="text-align:left">
+        <div class="mb-3"><label class="form-label">用户名</label><input type="text" class="form-control" v-model="loginForm.username" placeholder="请输入用户名" @keyup.enter="doLogin"></div>
+        <div class="mb-3"><label class="form-label">密码</label><input type="password" class="form-control" v-model="loginForm.password" placeholder="请输入密码" @keyup.enter="doLogin"></div>
+        <div class="login-error">{{ loginError }}</div>
+        <button class="login-btn" @click="doLogin" :disabled="loginLoading">
+          <span v-if="loginLoading"><span class="spinner-border spinner-border-sm me-1"></span>登录中...</span>
+          <span v-else><i class="bi bi-box-arrow-in-right me-1"></i>登 录</span>
+        </button>
+      </div>
+    </div>
+    <div class="login-copyright">© 2021–2026 湘潭市机关事务管理局 版权所有｜系统版本 V1.1</div>
+  </div>
+
+  <div v-else class="app-layout">
+    <div class="topnav">
+      <div class="nav-left">
+        <img src="/static/logo.jpg" class="nav-logo" @error="logoErrorNav" alt="">
+        <span class="nav-title">潭合同</span>
+        <span class="nav-unit">湘潭市机关事务管理局</span>
+      </div>
+      <div class="nav-right">
+        <span class="user-info"><i class="bi bi-person-circle me-1"></i>欢迎，{{ store.user.name }}（{{ roleLabel }}）</span>
+        <button class="logout-btn" @click="doLogout"><i class="bi bi-box-arrow-right me-1"></i>退出</button>
+      </div>
+    </div>
+    <div class="sidebar" :class="{collapsed:sidebarCollapsed}">
+      <button class="sidebar-toggle" @click="sidebarCollapsed=!sidebarCollapsed">
+        <i class="bi" :class="sidebarCollapsed?'bi-chevron-right':'bi-chevron-left'"></i>
+      </button>
+      <div class="menu-item" :class="{active:currentView==='home'}" @click="switchView('home')"><i class="bi bi-house-door"></i><span>首页</span> <span class="menu-badge" v-if="store.dashboard.expiring_contracts>0" title="已/将到期合同数">{{ store.dashboard.expiring_contracts }}</span><span class="menu-badge" v-if="store.dashboard.pending_project_count>0" title="待支付项目数">{{ store.dashboard.pending_project_count }}</span></div>
+      <div class="menu-item" :class="{active:currentView==='contracts'}" @click="switchView('contracts')"><i class="bi bi-file-text"></i><span>合同台账</span></div>
+      <div class="menu-item" :class="{active:currentView==='stats'}" @click="switchView('stats')"><i class="bi bi-bar-chart"></i><span>查询统计</span></div>
+      <div class="menu-item" :class="{active:currentView==='users'}" @click="switchView('users')"><i class="bi bi-people"></i><span>用户管理</span></div>
+      <div class="menu-item" v-if="store.user.role==='管理员'" :class="{active:currentView==='depts'}" @click="switchView('depts')"><i class="bi bi-building"></i><span>部门管理</span></div>
+      <div class="menu-item" :class="{active:currentView==='logs'}" @click="switchView('logs')"><i class="bi bi-clock-history"></i><span>日志审计</span></div>
+      <div class="menu-item" v-if="store.user.role==='管理员'" :class="{active:currentView==='settings'}" @click="switchView('settings')"><i class="bi bi-gear"></i><span>系统设置</span></div>
+    </div>
+    <div class="main-content" :class="{expanded:sidebarCollapsed}">
+      <transition name="page" mode="out-in">
+      <div v-if="currentView==='home'" key="home">
+        <div class="row g-3 mb-4">
+          <div class="col"><div class="stat-card"><div class="stat-icon blue"><i class="bi bi-files"></i></div><div class="stat-info"><h3>{{ store.dashboard.total_contracts }}</h3><p>总合同数（个）</p></div></div></div>
+          <div class="col"><div class="stat-card"><div class="stat-icon green"><i class="bi bi-currency-yen"></i></div><div class="stat-info"><h3>{{ totalAmountDisplay }}</h3><p>总合同额（万元）</p></div></div></div>
+          <div class="col"><div class="stat-card"><div class="stat-icon orange"><i class="bi bi-exclamation-triangle"></i></div><div class="stat-info"><h3>{{ store.dashboard.expiring_contracts }}</h3><p>已/将到期合同数（个）</p></div></div></div>
+          <div class="col"><div class="stat-card"><div class="stat-icon purple"><i class="bi bi-cash-coin"></i></div><div class="stat-info"><h3>{{ store.dashboard.pending_project_count }}</h3><p>待支付项目数（个）</p></div></div></div>
+          <div class="col"><div class="stat-card"><div class="stat-icon red"><i class="bi bi-currency-dollar"></i></div><div class="stat-info"><h3>{{ unpaidAmountDisplay }}</h3><p>待支付总金额（万元）</p></div></div></div>
+        </div>
+        <div class="white-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px"><h5 style="color:#0A2E5C;font-weight:700;margin:0"><i class="bi bi-bell me-2"></i>合同到期提醒</h5><a v-if="store.reminders.length > 3" href="javascript:;" style="color:#1E90FF;font-weight:600;text-decoration:none;font-size:14px;white-space:nowrap" @click="reminderLimit = reminderLimit >= store.reminders.length ? 3 : store.reminders.length"><i :class="reminderLimit >= store.reminders.length ? 'bi bi-arrow-up-circle me-1' : 'bi bi-arrow-right-circle me-1'"></i>{{ reminderLimit >= store.reminders.length ? '折叠' : '更多' }}</a></div>
+          <div v-if="store.reminders.length===0" class="empty-state"><i class="bi bi-emoji-smile" style="font-size:56px;color:#4CAF50"></i><p>恭喜，暂无到期合同</p></div>
+          <div v-else>
+            <div class="reminder-item" v-for="r in store.reminders.slice(0, reminderLimit)" :key="r.id" v-show="!ignoredReminders[r.id]">
+              <div class="ri-info">
+                <span><strong>编号：</strong>{{ r.number }}</span><span><strong>项目：</strong>{{ r.name }}</span>
+                <span><strong>下次招采：</strong>{{ r.next_bid_date }}<span class="remind-hint"><strong>{{ r.remaining_days>0?'将于：':'已过期：' }}</strong><span class="remaining-tag" style="margin-right:2px" :class="r.remaining_days<=0?'danger':(r.remaining_days<=15?'warning':'safe')">{{ r.remaining_days<=0?(-r.remaining_days)+'天':r.remaining_days+'天' }}</span><strong v-if="r.remaining_days>0">后到期</strong></span></span><span><strong>经办人：</strong>{{ r.handler }}</span>
+                <span><strong>部门：</strong>{{ r.department }}</span>
+              </div>
+              <div class="ri-actions">
+                <button class="btn-outline-custom btn-sm-custom" @click="ignoreReminder(r.id)">忽略</button>
+                <button class="btn-danger-custom btn-sm-custom" @click="permanentClose(r)">永久关闭</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="white-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px"><h5 style="color:#0A2E5C;font-weight:700;margin:0"><i class="bi bi-currency-dollar me-2"></i>待支付提醒<small class="ms-2" style="font-weight:400;font-size:13px;color:#8A94A6">待支付项目共 <strong>{{ store.pendingPayments.length }}</strong> 个</small></h5><a v-if="store.pendingPayments.length > 2" href="javascript:;" style="color:#1E90FF;font-weight:600;text-decoration:none;font-size:14px;white-space:nowrap" @click="pendingLimit = pendingLimit >= store.pendingPayments.length ? 2 : store.pendingPayments.length"><i :class="pendingLimit >= store.pendingPayments.length ? 'bi bi-arrow-up-circle me-1' : 'bi bi-arrow-right-circle me-1'"></i>{{ pendingLimit >= store.pendingPayments.length ? '折叠' : '更多' }}</a></div>
+          <div v-if="store.pendingPayments.length===0" class="empty-state"><i class="bi bi-emoji-smile" style="font-size:56px;color:#4CAF50"></i><p>恭喜，暂无待支付合同</p></div>
+          <div v-else>
+            <div class="reminder-item" v-for="p in store.pendingPayments.slice(0, pendingLimit)" :key="p.id">
+              <div class="ri-info">
+                <span><strong>合同编号：</strong>{{ p.number }}</span><span><strong>项目名称：</strong>{{ p.name }}</span>
+                <span><strong>所属部门：</strong>{{ p.department }}</span><span><strong>结算金额：</strong>{{ fmtMoney(p.settled_amount) }}万元</span>
+                <span><strong>已支付：</strong>{{ fmtMoney(p.paid_amount) }}万元</span><span><strong>未支付/差额：</strong>{{ fmtMoney(p.pending_amount) }}万元</span>
+                <span><strong>经办人：</strong>{{ p.handler }}</span><span><strong>采购时间：</strong>{{ p.procurement_date }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-if="currentView==='contracts'" key="contracts">
+        <div class="white-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+            <h5 style="color:#0A2E5C;font-weight:700;margin:0"><i class="bi bi-file-text me-2"></i>合同台账</h5>
+            <div class="btn-toolbar">
+              <button v-if="canEdit" class="btn-primary-custom btn-sm-custom" @click="openContractModal(null)"><i class="bi bi-plus-lg me-1"></i>新增合同</button>
+              <button class="btn-outline-custom btn-sm-custom" @click="exportContracts"><i class="bi bi-download me-1"></i>导出</button>
+              <button v-if="store.user.role==='管理员'" class="btn-outline-custom btn-sm-custom" @click="downloadTemplate"><i class="bi bi-file-earmark-arrow-down me-1"></i>模板</button>
+              <button v-if="store.user.role==='管理员'" class="btn-outline-custom btn-sm-custom" @click="importFileInput.click()"><i class="bi bi-upload me-1"></i>导入</button>
+              <input ref="importFileInput" type="file" accept=".xlsx,.xlsm" style="display:none" @change="importContracts">
+              <button class="btn-outline-custom btn-sm-custom" @click="loadContracts"><i class="bi bi-arrow-clockwise me-1"></i>刷新</button>
+            </div>
+          </div>
+          <div class="search-toggle" @click="searchOpen=!searchOpen"><i class="bi" :class="searchOpen?'bi-chevron-up':'bi-chevron-down'"></i> 搜索筛选条件</div>
+          <div class="search-panel" :class="{open:searchOpen}">
+            <div class="row g-2 mt-2">
+              <div class="col-md-2"><label class="form-label-sm">单位名称</label><select class="form-select-sm-custom" v-model="search.unit"><option value="">全部</option><option v-for="u in units" :key="u" :value="u">{{ u }}</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">科室名称</label><select class="form-select-sm-custom" v-model="search.dept"><option value="">全部</option><option v-for="d in filteredDepts" :key="d" :value="d">{{ d }}</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">经办人</label><input class="form-control-sm-custom" v-model="search.person" placeholder="模糊"></div>
+              <div class="col-md-2"><label class="form-label-sm">项目名称</label><input class="form-control-sm-custom" v-model="search.name" placeholder="模糊"></div>
+              <div class="col-md-2"><label class="form-label-sm">合同编号</label><input class="form-control-sm-custom" v-model="search.no" placeholder="精确/模糊"></div>
+              <div class="col-md-2"><label class="form-label-sm">中标单位</label><input class="form-control-sm-custom" v-model="search.vendor" placeholder="模糊"></div>
+              <div class="col-md-2"><label class="form-label-sm">项目分类</label><select class="form-select-sm-custom" v-model="search.category"><option value="">全部</option><option>服务类</option><option>维护维修类</option><option>货物类</option><option>建设项目</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">采购方式</label><select class="form-select-sm-custom" v-model="search.method"><option value="">全部</option><option>公开招标</option><option>竞争性磋商</option><option>竞争性谈判</option><option>自行采购</option></select></div><div class="col-md-2"><label class="form-label-sm">资金来源</label><select class="form-select-sm-custom" v-model="search.fund_source"><option value="">全部</option><option>年初部门预算</option><option>年中追加预算</option><option>统筹预算</option><option>上级专项转移支付</option><option>上年结转结余</option><option>其他</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">金额(最小)</label><input class="form-control-sm-custom" v-model="search.amount_min" type="number" step="0.01"></div>
+              <div class="col-md-2"><label class="form-label-sm">金额(最大)</label><input class="form-control-sm-custom" v-model="search.amount_max" type="number" step="0.01"></div>
+              <div class="col-md-2"><label class="form-label-sm">采购时间(起)</label><input class="form-control-sm-custom" v-model="search.start_date" type="date"></div>
+              <div class="col-md-2"><label class="form-label-sm">采购时间(止)</label><input class="form-control-sm-custom" v-model="search.end_date" type="date"></div>
+              <div class="col-md-2"><label class="form-label-sm">下次招采(起)</label><input class="form-control-sm-custom" v-model="search.remind_start" type="date"></div>
+              <div class="col-md-2"><label class="form-label-sm">下次招采(止)</label><input class="form-control-sm-custom" v-model="search.remind_end" type="date"></div>
+              <div class="col-md-2"><label class="form-label-sm">归档状态</label><select class="form-select-sm-custom" v-model="search.archived"><option value="">全部</option><option value="否">未归档</option><option value="是">已归档</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">是否结算</label><select class="form-select-sm-custom" v-model="search.is_settled"><option value="">全部</option><option>是</option><option>否</option></select></div>
+              <div class="col-md-2 d-flex align-items-end"><button class="btn-primary-custom btn-sm-custom btn-height-match" style="padding-left:8px;padding-right:8px" @click="searchContracts"><i class="bi bi-search me-1"></i>搜索</button><button class="btn-outline-custom btn-sm-custom btn-height-match ms-2" style="padding-left:8px;padding-right:8px" @click="resetSearch"><i class="bi bi-x-circle me-1"></i>重置</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="white-card" style="padding:0;overflow:auto">
+          <table class="table-custom contracts-table">
+            <thead><tr><th>编号</th><th>项目名称</th><th>项目分类</th><th>所属部门</th><th>合同金额(万元)</th><th>经办人</th><th>采购时间</th><th>中标单位</th><th>是否结算</th><th>附件</th><th style="width:165px">操作</th></tr></thead>
+            <tbody>
+              <tr v-if="contractItems.length===0"><td colspan="11" style="text-align:center;padding:30px;color:#999"><div class="empty-state-icon"><i class="bi bi-inbox"></i></div>暂无合同数据</td></tr>
+              <tr v-for="c in contractItems" :key="c.id" :class="{'row-archived': c.archived}">
+                <td>{{ c.number }}</td><td><a href="#" @click.prevent="openContractModal(c)" style="color:#1E90FF;text-decoration:none">{{ c.name }}</a></td>
+                <td>{{ c.category }}</td><td>{{ c.department }}</td>
+                <td>{{ c.amount!==null&&c.amount!==undefined?Number(c.amount).toFixed(2):'' }}</td>
+                <td>{{ c.handler }}</td><td>{{ c.procurement_date }}</td>
+                <td>{{ c.winner || '-' }}</td><td>{{ c.is_settled || '-' }}</td>
+                
+                <td style="min-width:140px"><template v-if="c.attachments && c.attachments.length"><span v-for="(a, ai) in c.attachments" :key="a.id"><a :href="'/api/attachments/' + a.id + '/download'" :title="a.type_label" style="color:#1E90FF;text-decoration:none"><i class="bi bi-paperclip me-1"></i>{{ a.display_name }}</a>{{ ai < c.attachments.length-1 ? '、' : '' }}</span></template><span v-else style="color:#bbb">-</span></td>
+                <td><template v-if="!c.archived"><button v-if="canEdit" class="btn-primary-custom btn-sm-custom me-1" @click="openContractModal(c)"><i class="bi bi-pencil"></i></button><button v-if="canEdit" class="btn-danger-custom btn-sm-custom me-1" @click="confirmDelete(c)"><i class="bi bi-trash"></i></button><button v-if="canArchive(c)" class="btn-archive-custom btn-sm-custom" style="width:36px;height:28px;padding:0;line-height:26px;vertical-align:middle" title="归档" @click="confirmArchive(c)">归档</button></template><span v-else class="readonly-tag"><i class="bi bi-lock me-1"></i>已归档，仅浏览</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pagination-bar" style="padding:12px 16px">
+            <div class="page-info"><span>共 {{ contractTotal }} 条</span><select v-model="contractPageSize" @change="contractPage=1;loadContracts()"><option value="20">20条/页</option><option value="50">50条/页</option></select></div>
+            <div class="page-btns">
+              <button :disabled="contractPage<=1" @click="contractPage--;loadContracts()">上一页</button>
+              <template v-for="p in contractPages" :key="p"><button v-if="p==='...'" disabled>...</button><button v-else :class="{active:p===contractPage}" @click="contractPage=p;loadContracts()">{{ p }}</button></template>
+              <button :disabled="contractPage>=contractMaxPage" @click="contractPage++;loadContracts()">下一页</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-if="currentView==='stats'" key="stats">
+        <div class="white-card">
+          <h5 style="color:#0A2E5C;font-weight:700;margin-bottom:16px"><i class="bi bi-bar-chart me-2"></i>查询统计</h5>
+          <div class="stats-filter-panel">
+            <div class="row g-2 align-items-end">
+              <div class="col-md-2"><label class="form-label-sm">统计维度</label><select class="form-select-sm-custom" v-model="statsType" @change="loadStats"><option value="by_dept">按部门</option><option value="by_time">按时间</option><option value="by_person">按经办人</option><option value="by_category">按项目分类</option><option value="by_fund_source">按资金来源</option><option value="pay_dept">按部门支付情况</option><option value="pay_project">按项目支付情况</option><option value="budget_dept">按部门预算执行情况</option><option value="budget_project">按项目预算执行情况</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">单位名称</label><select class="form-select-sm-custom" v-model="statsUnit"><option value="">全部</option><option v-for="u in units" :key="u" :value="u">{{ u }}</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">科室</label><select class="form-select-sm-custom" v-model="statsDept"><option value="">全部</option><option v-for="d in statsFilteredDepts" :key="d" :value="d">{{ d }}</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">经办人</label><input class="form-control-sm-custom" v-model="statsPerson" placeholder="模糊"></div>
+              <div class="col-md-2"><label class="form-label-sm">采购时间(起)</label><input class="form-control-sm-custom" v-model="statsStartDate" type="date"></div>
+              <div class="col-md-2"><label class="form-label-sm">采购时间(止)</label><input class="form-control-sm-custom" v-model="statsEndDate" type="date"></div>
+            </div>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-2" v-if="statsType==='by_time'"><label class="form-label-sm">年份</label><select class="form-select-sm-custom" v-model="statsYear"><option value="">全部</option><option v-for="y in [2021,2022,2023,2024,2025,2026]" :key="y" :value="y">{{ y }}</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">图表1类型</label><select class="form-select-sm-custom" v-model="chartType" @change="renderCharts"><option value="bar">柱状图</option><option value="pie">饼图</option><option value="line">折线图</option><option value="doughnut">环形图</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">图表2类型</label><select class="form-select-sm-custom" v-model="chartType2" @change="renderCharts"><option value="bar">柱状图</option><option value="pie">饼图</option><option value="line">折线图</option><option value="doughnut">环形图</option></select></div>
+              <div class="col-md-2"><button class="btn-primary-custom btn-sm-custom btn-height-match w-100" @click="loadStats"><i class="bi bi-search me-1"></i>统计</button></div>
+              <div class="col-md-2"><button class="btn-outline-custom btn-sm-custom btn-height-match w-100" @click="resetStats"><i class="bi bi-arrow-counterclockwise me-1"></i>重置</button></div>
+              <div class="col-md-2" style="font-size:12px;color:#999;display:flex;align-items:flex-end;padding-bottom:8px"><i class="bi bi-info-circle me-1"></i>{{ statsHint }}</div>
+            </div>
+          </div>
+          <div class="stats-grid"><div class="chart-container"><canvas ref="statsChart1" v-if="statsData.length>0" :key="'c1-'+chartType+'-'+statsType"></canvas><div class="chart-empty" v-show="statsData.length===0"><i class="bi bi-pie-chart" style="font-size:40px;margin-bottom:8px"></i>请点击“统计”按钮查看图表</div></div><div class="chart-container"><canvas ref="statsChart2" v-if="statsData.length>0" :key="'c2-'+chartType2+'-'+statsType"></canvas><div class="chart-empty" v-show="statsData.length===0"><i class="bi bi-bar-chart" style="font-size:40px;margin-bottom:8px"></i>第二个图表将在加载数据后显示</div></div></div>
+          <div style="overflow:auto;margin-top:8px">
+            <table class="table-custom"><thead><tr><th v-for="h in statsTableHeaders" :key="h">{{ h }}</th></tr></thead>
+            <tbody><tr v-if="statsData.length===0"><td :colspan="statsTableHeaders.length" style="text-align:center;padding:30px;color:#999"><div class="empty-state-icon"><i class="bi bi-bar-chart"></i></div>请选择统计维度查看数据</td></tr>
+            <tr v-for="(r,ri) in statsData" :key="ri"><td v-for="h in statsTableHeaders" :key="h">{{ r[h] }}</td></tr></tbody></table>
+          </div>
+          <div style="margin-top:12px"><button class="btn-outline-custom btn-sm-custom" @click="exportStats"><i class="bi bi-download me-1"></i>导出统计结果</button></div>
+        </div>
+      </div>
+      <div v-if="currentView==='users'" key="users">
+        <template v-if="store.user.role==='管理员'">
+        <div class="white-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+            <h5 style="color:#0A2E5C;font-weight:700;margin:0"><i class="bi bi-people me-2"></i>用户管理</h5>
+            <div class="btn-toolbar"><button class="btn-primary-custom btn-sm-custom" @click="openUserModal(null)"><i class="bi bi-person-plus me-1"></i>新增用户</button></div>
+          </div>
+          <div class="search-toggle" @click="userSearchOpen=!userSearchOpen"><i class="bi" :class="userSearchOpen?'bi-chevron-up':'bi-chevron-down'"></i> 搜索筛选条件</div>
+          <div class="search-panel" :class="{open:userSearchOpen}">
+            <div class="row g-2 mt-2">
+              <div class="col-md-2"><label class="form-label-sm">用户名</label><input class="form-control-sm-custom" v-model="userSearch.username" placeholder="模糊"></div>
+              <div class="col-md-2"><label class="form-label-sm">姓名</label><input class="form-control-sm-custom" v-model="userSearch.name" placeholder="模糊"></div>
+              <div class="col-md-2"><label class="form-label-sm">所属部门</label><select class="form-select-sm-custom" v-model="userSearch.department"><option value="">全部</option><option v-for="d in allDepts" :key="d.display" :value="d.display">{{ d.display }}</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">角色</label><select class="form-select-sm-custom" v-model="userSearch.role"><option value="">全部</option><option>管理员</option><option>普通用户</option><option>查询用户</option></select></div>
+              <div class="col-md-4 d-flex align-items-end"><button class="btn-primary-custom btn-sm-custom btn-height-match" @click="searchUsers"><i class="bi bi-search me-1"></i>查询</button><button class="btn-outline-custom btn-sm-custom btn-height-match ms-2" @click="resetUserSearch"><i class="bi bi-x-circle me-1"></i>重置</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="white-card" style="padding:0;overflow:auto">
+          <div style="overflow:auto"><table class="table-custom">
+            <thead><tr><th>用户名</th><th>姓名</th><th>所属部门</th><th>分管部门</th><th>角色</th><th style="width:200px">操作</th></tr></thead>
+            <tbody><tr v-if="users.length===0"><td colspan="6" style="text-align:center;padding:30px;color:#999"><div class="empty-state-icon"><i class="bi bi-people"></i></div>暂无用户</td></tr>
+            <tr v-for="u in pagedUsers" :key="u.username"><td>{{ u.username }}</td><td>{{ u.name }}</td><td>{{ u.department }}</td><td>{{ managedDisplay(u.managed_departments) }}</td><td>{{ u.role }}</td>
+            <td><button class="btn-primary-custom btn-sm-custom me-1" @click="openUserModal(u)"><i class="bi bi-pencil"></i></button><button class="btn-outline-custom btn-sm-custom me-1" @click="resetPassword(u)">重置密码</button><button class="btn-danger-custom btn-sm-custom" @click="confirmDeleteUser(u)"><i class="bi bi-trash"></i></button></td></tr>
+                    </tbody></table></div>
+          <div class="pagination-bar" style="padding:12px 16px">
+            <div class="page-info"><span>共 {{ usersTotal }} 条</span><select v-model="usersPageSize" @change="usersPage=1"><option value="20">20条/页</option><option value="50">50条/页</option><option value="100">100条/页</option></select></div>
+            <div class="page-btns">
+              <button :disabled="usersPage<=1" @click="usersPage--">上一页</button>
+              <template v-for="p in usersPages" :key="p"><button v-if="p==='...'" disabled>...</button><button v-else :class="{active:p===usersPage}" @click="usersPage=p">{{ p }}</button></template>
+              <button :disabled="usersPage>=usersMaxPage" @click="usersPage++">下一页</button>
+            </div>
+          </div>
+        </div>
+        <!-- User Modal -->
+        <div class="modal-overlay" v-if="userModalOpen" @click.self="userModalOpen=false">
+          <div class="modal-content" style="max-width:550px">
+            <div class="modal-header"><h5>{{ userEditIndex===null?'新增用户':'编辑用户' }}</h5><button class="modal-close" @click="userModalOpen=false">&times;</button></div>
+            <div class="modal-body">
+              <div class="row g-2">
+                <div class="col-md-6"><label class="form-label-sm">用户名</label><input class="form-control-sm-custom" v-model="userForm.username" :readonly="userEditIndex!==null" placeholder="登录账号"></div>
+                <div class="col-md-6"><label class="form-label-sm">姓名</label><input class="form-control-sm-custom" v-model="userForm.name" placeholder="真实姓名"></div>
+                <div class="col-md-6"><label class="form-label-sm">所属部门</label><select class="form-select-sm-custom" v-model="userForm.department"><option value="">请选择</option><option v-for="d in allDepts" :key="d.display" :value="d.display">{{ d.display }}</option></select></div>
+                <div class="col-md-12" v-if="userForm.department && isLeadershipDept(userForm.department)">
+                  <label class="form-label-sm">分管部门 <span style="font-weight:400;color:#7a8aa5">（该用户为领导，请勾选其分管的部门范围）</span></label>
+                  <div class="manage-dept-box">
+                    <label v-for="d in allDepts" :key="d.display" class="manage-dept-item">
+                      <input type="checkbox" :value="d.display" v-model="userForm.managedDepartments">
+                      <span>{{ d.display }}</span>
+                    </label>
+                    <div v-if="allDepts.length===0" style="color:#999;padding:6px 0">暂无部门，请先在“部门管理”中添加</div>
+                  </div>
+                </div>
+                <div class="col-md-6"><label class="form-label-sm">角色</label><select class="form-select-sm-custom" v-model="userForm.role"><option value="普通用户">普通用户</option><option value="管理员">管理员</option><option value="查询用户">查询用户</option></select></div>
+              </div>
+            </div>
+            <div class="modal-footer"><button class="btn-outline-custom btn-sm-custom" @click="userModalOpen=false">取消</button><button class="btn-primary-custom btn-sm-custom" @click="saveUser" :disabled="userSaving"><span v-if="userSaving">保存中...</span><span v-else>保存</span></button></div>
+          </div>
+        </div>
+        </template>
+        <!-- 非管理员：修改本人用户名和密码 -->
+        <div v-else class="white-card">
+          <h5 style="color:#0A2E5C;font-weight:700;margin:0 0 16px"><i class="bi bi-person-gear me-2"></i>账号设置</h5>
+          <div style="font-size:13px;color:#666;margin-bottom:14px;line-height:1.8">当前账号：<span style="color:#E53935">{{ store.user.username }}</span>　姓名：<span style="color:#E53935">{{ store.user.name }}</span>　部门：<span style="color:#E53935">{{ store.user.department }}</span>　角色：<span style="color:#E53935">{{ store.user.role }}</span></div>
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label-sm">新用户名</label><input class="form-control-sm-custom" v-model="selfForm.new_username" placeholder="留空表示不修改"></div>
+            <div class="col-md-6"><label class="form-label-sm">原密码</label><input class="form-control-sm-custom" v-model="selfForm.old_password" type="password" placeholder="修改密码时必填"></div>
+            <div class="col-md-6"><label class="form-label-sm">新密码</label><input class="form-control-sm-custom" v-model="selfForm.new_password" type="password" placeholder="留空表示不修改"></div>
+            <div class="col-md-6"><label class="form-label-sm">确认新密码</label><input class="form-control-sm-custom" v-model="selfForm.confirm_password" type="password" placeholder="再次输入新密码"></div>
+          </div>
+          <div style="margin-top:16px;text-align:center">
+            <button class="btn-outline-custom btn-sm-custom me-2" @click="cancelSelf"><i class="bi bi-x me-1"></i>取消</button>
+            <button class="btn-primary-custom btn-sm-custom" @click="saveSelf" :disabled="selfSaving"><span v-if="selfSaving">保存中...</span><span v-else><i class="bi bi-check2 me-1"></i>确认修改</span></button>
+          </div>
+        </div>
+      </div>
+      <div v-if="currentView==='depts' && store.user.role==='管理员'" key="depts">
+        <div class="white-card">
+          <h5 style="color:#0A2E5C;font-weight:700;margin:0 0 16px"><i class="bi bi-building me-2"></i>部门管理</h5>
+          <div class="row g-2 mb-3">
+            <div class="col-md-5"><input class="form-control-sm-custom" v-model="newDept.unit" placeholder="单位名称"></div>
+            <div class="col-md-5"><input class="form-control-sm-custom" v-model="newDept.dept" placeholder="部门名称"></div>
+            <div class="col-md-2"><button class="btn-primary-custom btn-sm-custom btn-height-match w-100" @click="addDepartment"><i class="bi bi-plus-lg me-1"></i>新增部门</button></div>
+          </div>
+          <div style="overflow:auto"><table class="table-custom" style="table-layout:fixed"><thead><tr><th style="width:calc((100% - 110px) * 4 / 7)">单位名称</th><th style="width:calc((100% - 110px) * 3 / 7)">部门名称</th><th style="width:110px;text-align:center">操作</th></tr></thead>
+            <tbody><tr v-if="allDepts.length===0"><td colspan="3" style="text-align:center;padding:30px;color:#999"><div class="empty-state-icon"><i class="bi bi-building"></i></div>暂无部门</td></tr>
+            <tr v-for="(d,di) in pagedDepts" :key="di"><td>{{ d.unit }}</td><td>{{ d.dept }}</td><td style="text-align:center"><button class="btn-primary-custom btn-sm-custom me-1" @click="openDeptEdit(d)"><i class="bi bi-pencil"></i></button><button class="btn-danger-custom btn-sm-custom" @click="confirmDeleteDept(d)"><i class="bi bi-trash"></i></button></td></tr></tbody></table></div>
+          <div class="pagination-bar" style="padding:12px 16px">
+            <div class="page-info"><span>共 {{ deptsTotal }} 条</span><select v-model="deptsPageSize" @change="deptsPage=1"><option value="20">20条/页</option><option value="50">50条/页</option><option value="100">100条/页</option></select></div>
+            <div class="page-btns">
+              <button :disabled="deptsPage<=1" @click="deptsPage--">上一页</button>
+              <template v-for="p in deptsPages" :key="p"><button v-if="p==='...'" disabled>...</button><button v-else :class="{active:p===deptsPage}" @click="deptsPage=p">{{ p }}</button></template>
+              <button :disabled="deptsPage>=deptsMaxPage" @click="deptsPage++">下一页</button>
+            </div>
+          </div>
+        </div>
+        <!-- Dept Edit Modal -->
+        <div class="modal-overlay" v-if="deptEditOpen" @click.self="deptEditOpen=false">
+          <div class="modal-content" style="max-width:480px">
+            <div class="modal-header"><h5>编辑部门</h5><button class="modal-close" @click="deptEditOpen=false">&times;</button></div>
+            <div class="modal-body">
+              <div class="row g-2">
+                <div class="col-md-6"><label class="form-label-sm">单位名称</label><input class="form-control-sm-custom" v-model="deptEditForm.unit" placeholder="单位名称"></div>
+                <div class="col-md-6"><label class="form-label-sm">部门名称</label><input class="form-control-sm-custom" v-model="deptEditForm.dept" placeholder="部门名称"></div>
+              </div>
+              <div style="font-size:12px;color:#999;margin-top:8px">修改后，关联该部门的用户与合同将同步更新所属部门。</div>
+            </div>
+            <div class="modal-footer"><button class="btn-outline-custom btn-sm-custom" @click="deptEditOpen=false">取消</button><button class="btn-primary-custom btn-sm-custom" @click="saveDept" :disabled="deptSaving"><span v-if="deptSaving">保存中...</span><span v-else>保存</span></button></div>
+          </div>
+        </div>
+      </div>
+      <div v-if="currentView==='settings' && store.user.role==='管理员'" key="settings">
+        <div class="white-card" style="max-width:500px">
+          <h5 style="color:#0A2E5C;font-weight:700;margin-bottom:20px"><i class="bi bi-gear me-2"></i>系统设置</h5>
+          <div class="mb-3"><label class="form-label-sm" style="margin-right:12px">全局默认提醒提前天数</label><input class="form-control-sm-custom" v-model.number="settingsDays" type="number" min="1" max="365" style="max-width:200px"><div style="font-size:12px;color:#999;margin-top:4px">范围：1-365天，默认60天</div></div>
+          <div class="mb-3"><label class="form-label-sm" style="margin-right:12px">全局默认日志保留天数</label><input class="form-control-sm-custom" v-model.number="settingsLogDays" type="number" min="1" max="3650" style="max-width:200px"><div style="font-size:12px;color:#999;margin-top:4px">范围：1-3650天，默认90天，超期操作日志自动清理</div></div>
+          <div class="mb-3"><label class="form-label-sm" style="margin-right:12px">全局默认上传最大附件</label><input class="form-control-sm-custom" v-model.number="settingsAttachMb" type="number" min="1" max="200" style="max-width:200px"><div style="font-size:12px;color:#999;margin-top:4px">范围：1-200M，默认20M，超出限制的附件上传将被拒绝</div></div>
+          <button class="btn-primary-custom btn-sm-custom" @click="saveSettings" :disabled="settingsSaving"><span v-if="settingsSaving">保存中...</span><span v-else><i class="bi bi-check2 me-1"></i>保存设置</span></button>
+        </div>
+      </div>
+      <div v-if="currentView==='logs'" key="logs">
+        <div class="white-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+            <h5 style="color:#0A2E5C;font-weight:700;margin:0"><i class="bi bi-clock-history me-2"></i>操作日志（审计）</h5>
+            <div class="btn-toolbar">
+              <button v-if="store.user.role==='管理员'" class="btn-outline-custom btn-sm-custom" @click="exportLogs"><i class="bi bi-download me-1"></i>导出</button>
+              <button class="btn-outline-custom btn-sm-custom" @click="loadLogs"><i class="bi bi-arrow-clockwise me-1"></i>刷新</button>
+            </div>
+          </div>
+          <div class="search-toggle" @click="logsSearchOpen=!logsSearchOpen"><i class="bi" :class="logsSearchOpen?'bi-chevron-up':'bi-chevron-down'"></i> 搜索筛选条件</div>
+          <div class="search-panel" :class="{open:logsSearchOpen}">
+            <div class="row g-2">
+              <div class="col-md-2"><label class="form-label-sm">开始日期</label><input class="form-control-sm-custom" v-model="logsFilter.start_date" type="date"></div>
+              <div class="col-md-2"><label class="form-label-sm">结束日期</label><input class="form-control-sm-custom" v-model="logsFilter.end_date" type="date"></div>
+              <div class="col-md-2" v-if="store.user.role==='管理员'"><label class="form-label-sm">操作用户</label><input class="form-control-sm-custom" v-model="logsFilter.username" placeholder="用户名/姓名"></div>
+              <div class="col-md-2"><label class="form-label-sm">操作模块</label><select class="form-select-sm-custom" v-model="logsFilter.module"><option value="">全部</option><option>用户登录</option><option>合同台账</option><option>用户管理</option><option>部门管理</option><option>系统配置</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">操作类型</label><select class="form-select-sm-custom" v-model="logsFilter.action"><option value="">全部</option><option>登录</option><option>登出</option><option>新增</option><option>修改</option><option>删除</option><option>归档</option><option>导入</option><option>导出</option><option>上传附件</option><option>删除附件</option><option>清空提醒</option><option>新增用户</option><option>修改用户</option><option>重置密码</option><option>删除用户</option><option>修改个人信息</option><option>新增部门</option><option>删除部门</option><option>修改配置</option></select></div>
+              <div class="col-md-2 d-flex align-items-end"><button class="btn-primary-custom btn-sm-custom btn-height-match" style="margin-right:8px" @click="searchLogs"><i class="bi bi-search me-1"></i>查询</button><button class="btn-outline-custom btn-sm-custom btn-height-match" @click="resetLogs"><i class="bi bi-arrow-counterclockwise me-1"></i>重置</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="white-card" style="padding:0;overflow:auto">
+          <table class="table-custom">
+            <thead><tr><th style="width:150px">时间</th><th>用户名</th><th>姓名</th><th>角色</th><th style="width:120px">IP地址</th><th>模块</th><th>操作类型</th><th>对象</th><th>详情</th><th style="width:70px">结果</th></tr></thead>
+            <tbody>
+              <tr v-if="logsItems.length===0"><td colspan="10" style="text-align:center;padding:30px;color:#999"><div class="empty-state-icon"><i class="bi bi-journal-text"></i></div>暂无日志记录</td></tr>
+              <tr v-for="(l, li) in logsItems" :key="li">
+                <td>{{ l['时间'] }}</td><td>{{ l['用户名'] }}</td><td>{{ l['姓名'] }}</td><td>{{ l['角色'] }}</td><td>{{ l['IP'] }}</td><td>{{ l['模块'] }}</td><td>{{ l['操作类型'] }}</td><td>{{ l['对象'] }}</td><td style="max-width:240px">{{ l['详情'] }}</td>
+                <td><span :class="l['结果']==='成功' ? 'badge-success' : 'badge-danger'">{{ l['结果'] }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pagination-bar" style="padding:12px 16px">
+            <div class="page-info"><span>共 {{ logsTotal }} 条</span><select v-model="logsPageSize" @change="logsPage=1;loadLogs()"><option value="20">20条/页</option><option value="50">50条/页</option><option value="100">100条/页</option></select></div>
+            <div class="page-btns">
+              <button :disabled="logsPage<=1" @click="logsPage--;loadLogs()">上一页</button>
+              <template v-for="p in logsPages" :key="p"><button v-if="p==='...'" disabled>...</button><button v-else :class="{active:p===logsPage}" @click="logsPage=p;loadLogs()">{{ p }}</button></template>
+              <button :disabled="logsPage>=logsMaxPage" @click="logsPage++;loadLogs()">下一页</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </transition>
+  </div>
+  <!-- Contract Modal -->
+  <transition name="page"><div class="modal-overlay" v-if="contractModalOpen" @click.self="contractModalOpen=false">
+    <div class="modal-content" style="max-width:1000px">
+      <div class="modal-header"><h5>{{ contractEditId?'编辑合同':'新增合同' }}</h5><button class="modal-close" @click="contractModalOpen=false">&times;</button></div>
+      <div class="modal-body">
+        <div v-if="contractArchived" class="archive-banner"><i class="bi bi-archive-fill me-1"></i>该合同已归档，仅可浏览，不可修改</div>
+        <fieldset :disabled="!canEdit || contractArchived" style="border:0;padding:0;margin:0">
+        <div class="row g-2">
+          <div class="col-md-4"><label class="form-label-sm">编号 <span style="color:#f44336">*</span></label><input class="form-control-sm-custom" v-model="contractForm.number" :class="{'is-invalid':formErrors.number}" @input="delete formErrors.number"><div class="form-error">{{ formErrors.number||'' }}</div></div>
+          <div class="col-md-4"><label class="form-label-sm">项目分类 <span style="color:#f44336">*</span></label><select class="form-select-sm-custom" v-model="contractForm.category" :class="{'is-invalid':formErrors.category}" @change="delete formErrors.category"><option value="">请选择</option><option>服务类</option><option>维护维修类</option><option>货物类</option><option>建设项目</option></select></div>
+          <div class="col-md-4"><label class="form-label-sm">项目名称 <span style="color:#f44336">*</span></label><input class="form-control-sm-custom" v-model="contractForm.name" :class="{'is-invalid':formErrors.name}" @input="delete formErrors.name"><div class="form-error">{{ formErrors.name||'' }}</div></div>
+          <div class="col-md-4"><label class="form-label-sm">决策依据</label><input class="form-control-sm-custom" v-model="contractForm.decision_basis"></div>
+          <div class="col-md-4"><label class="form-label-sm">决策的招标控制价</label><input class="form-control-sm-custom" v-model="contractForm.bid_control_price"></div>
+          <div class="col-md-4"><label class="form-label-sm">招标控制价决策的依据</label><input class="form-control-sm-custom" v-model="contractForm.price_basis"></div>
+          <div class="col-md-4"><label class="form-label-sm">采购方式 <span style="color:#f44336">*</span></label><select class="form-select-sm-custom" v-model="contractForm.procurement_method" :class="{'is-invalid':formErrors.procurement_method}" @change="delete formErrors.procurement_method"><option value="">请选择</option><option>公开招标</option><option>竞争性磋商</option><option>竞争性谈判</option><option>自行采购</option></select></div>
+          <div class="col-md-4"><label class="form-label-sm">中标单位</label><input class="form-control-sm-custom" v-model="contractForm.winner"></div>
+          <div class="col-md-4"><label class="form-label-sm">实际实施单位</label><input class="form-control-sm-custom" v-model="contractForm.actual_implementor"></div>
+          <div class="col-md-4"><label class="form-label-sm">合同金额（万元） <span style="color:#f44336">*</span></label><input class="form-control-sm-custom" v-model.number="contractForm.amount" type="number" step="0.01" :class="{'is-invalid':formErrors.amount}" @input="delete formErrors.amount"><div class="form-error">{{ formErrors.amount||'' }}</div></div>
+          <div class="col-md-4"><label class="form-label-sm">资金来源 <span style="color:#f44336">*</span></label><select class="form-select-sm-custom" v-model="contractForm.fund_source" :class="{'is-invalid':formErrors.fund_source}" @change="delete formErrors.fund_source"><option value="">请选择</option><option>年初部门预算</option><option>年中追加预算</option><option>统筹预算</option><option>上级专项转移支付</option><option>上年结转结余</option><option>其他</option></select><div class="form-error">{{ formErrors.fund_source||'' }}</div></div>
+          <div class="col-md-4"><label class="form-label-sm">合同主要内容 <span style="color:#f44336">*</span></label><textarea class="form-control-sm-custom" v-model="contractForm.main_content" rows="2" style="height:34px;min-height:34px" :class="{'is-invalid':formErrors.main_content}" @input="delete formErrors.main_content"></textarea><div class="form-error">{{ formErrors.main_content||'' }}</div></div>
+          <div class="col-md-3"><label class="form-label-sm">采购时间</label><input class="form-control-sm-custom" v-model="contractForm.procurement_date" type="date" :class="{'is-invalid':formErrors.procurement_date}" @input="delete formErrors.procurement_date"><div class="form-error">{{ formErrors.procurement_date||'' }}</div></div>
+          <div class="col-md-3"><label class="form-label-sm">开工时间</label><input class="form-control-sm-custom" v-model="contractForm.start_date" type="date" :class="{'is-invalid':formErrors.start_date}" @input="delete formErrors.start_date"><div class="form-error">{{ formErrors.start_date||'' }}</div></div>
+          <div class="col-md-3"><label class="form-label-sm">完工时间</label><input class="form-control-sm-custom" v-model="contractForm.end_date" type="date" :class="{'is-invalid':formErrors.end_date}" @input="delete formErrors.end_date"><div class="form-error">{{ formErrors.end_date||'' }}</div></div>
+          <div class="col-md-3"><label class="form-label-sm">竣工验收时间</label><input class="form-control-sm-custom" v-model="contractForm.acceptance_date" type="date" :class="{'is-invalid':formErrors.acceptance_date}" @input="delete formErrors.acceptance_date"><div class="form-error">{{ formErrors.acceptance_date||'' }}</div></div>
+          <div class="col-md-4"><label class="form-label-sm">现场负责人</label><input class="form-control-sm-custom" v-model="contractForm.site_manager"></div>
+          <div class="col-md-2"><label class="form-label-sm">是否有签证或变更</label><select class="form-select-sm-custom" v-model="contractForm.has_change"><option value="">-</option><option>是</option><option>否</option></select></div>
+          <div class="col-md-6"><label class="form-label-sm">签证或变更情况</label><input class="form-control-sm-custom" v-model="contractForm.change_detail"></div>
+          <div class="col-md-3"><label class="form-label-sm">是否结算</label><select class="form-select-sm-custom" v-model="contractForm.is_settled"><option value="">-</option><option>是</option><option>否</option></select></div>
+          <div class="col-md-3"><label class="form-label-sm">结算金额</label><input class="form-control-sm-custom" v-model.number="contractForm.settled_amount" type="number" step="0.01"></div>
+          <div class="col-md-3"><label class="form-label-sm">已支付</label><input class="form-control-sm-custom" v-model.number="contractForm.paid_amount" type="number" step="0.01"></div>
+          <div class="col-md-3"><label class="form-label-sm">未支付</label><input class="form-control-sm-custom" v-model.number="contractForm.unpaid_amount" type="number" step="0.01"></div>
+          <div class="col-md-2"><label class="form-label-sm">期限</label><input class="form-control-sm-custom" v-model="contractForm.term"></div>
+          <div class="col-md-6"><label class="form-label-sm">经办人 <span style="color:#f44336">*</span></label><input class="form-control-sm-custom" v-model="contractForm.handler" placeholder="多人用中文顿号分隔" :class="{'is-invalid':formErrors.handler}" @input="delete formErrors.handler"><div class="form-error">{{ formErrors.handler||'' }}</div></div>
+          <div class="col-md-4"><label class="form-label-sm">所属部门</label><input class="form-control-sm-custom" v-model="contractForm.department" readonly></div>
+          <div class="col-md-4"><label class="form-label-sm">下次招采时间</label><input class="form-control-sm-custom" v-model="contractForm.next_bid_date" type="date" :class="{'is-invalid':formErrors.next_bid_date}" @input="delete formErrors.next_bid_date"><div class="form-error">{{ formErrors.next_bid_date||'' }}</div></div>
+          <div class="col-md-4"><label class="form-label-sm">提醒提前天数</label><input class="form-control-sm-custom" v-model.number="contractForm.remind_days" type="number" min="1" max="365"></div>
+          <div class="col-md-4"><label class="form-label-sm">备注</label><input class="form-control-sm-custom" v-model="contractForm.remark"></div>
+        </div>
+        <hr style="margin:14px 0 4px">
+        <div style="font-size:14px;font-weight:600;color:#0A2E5C;margin-bottom:10px"><i class="bi bi-paperclip me-1"></i>附件（选填，仅支持图片或PDF，单文件不超过 {{ store.config.default_attach_max_mb || 20 }}M）</div>
+        <div class="row g-2">
+          <div class="col-md-4" v-for="at in attachTypes" :key="at.key">
+            <label class="form-label-sm">{{ at.label }}</label>
+            <input type="file" class="form-control-sm-custom" :accept="at.accept" @change="onAttachSelect(at.key, $event)">
+            <div v-if="attachments[at.key] && attachments[at.key].length" style="margin-top:8px">
+              <div v-for="(a, ai) in attachments[at.key]" :key="a.id || ('new-'+ai)" class="attach-item">
+                <i class="bi bi-paperclip me-1"></i>
+                <a v-if="a.id" :href="'/api/attachments/' + a.id + '/download'" :title="a.type_label" style="color:#1E90FF;text-decoration:none">{{ a.display_name }}</a>
+                <span v-else style="color:#333">{{ a.display_name }}</span>
+                <span v-if="a.size" class="attach-size">{{ a.size }}</span>
+                <button type="button" class="attach-remove" :title="'移除附件'" @click="removeAttachment(at.key, ai)">&times;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        </fieldset>
+      </div>
+      <div class="modal-footer"><button class="btn-primary-custom btn-sm-custom" @click="printContractPdf"><i class="bi bi-printer me-1"></i>打印为PDF</button><button class="btn-outline-custom btn-sm-custom" @click="contractModalOpen=false">{{ contractArchived?'关闭':'取消' }}</button><button v-if="canEdit && !contractArchived" class="btn-primary-custom btn-sm-custom" @click="saveContract" :disabled="contractSaving"><span v-if="contractSaving">保存中...</span><span v-else>保存</span></button></div>
+    </div>
+  </div></transition>
+  <!-- 导入预览/结果 Modal -->
+  <transition name="page"><div class="modal-overlay" v-if="importPreviewOpen" @click.self="closeImportPreview">
+    <div class="modal-content" style="max-width:1100px">
+      <div class="modal-header"><h5><i class="bi bi-file-earmark-spreadsheet me-2"></i>{{ importResultMode==='result'?'导入结果':'导入预览与逐条校验' }}</h5><button class="modal-close" @click="closeImportPreview">&times;</button></div>
+      <div class="modal-body">
+        <template v-if="importResultMode==='result'">
+          <div class="import-summary-bar"><i class="bi bi-check-circle-fill" style="color:#2E7D32"></i><span>导入完成：新增 <b style="color:#1E90FF">{{ importResult.added }}</b> 条，跳过 <b style="color:#E65100">{{ importResult.skipped.length }}</b> 条</span></div>
+          <div v-if="importResult.skipped.length" style="overflow:auto;max-height:52vh">
+            <table class="table-custom"><thead><tr><th>Excel行号</th><th>合同编号</th><th>项目名称</th><th>跳过原因</th></tr></thead>
+            <tbody><tr v-for="(s, si) in importResult.skipped" :key="si"><td>{{ s.row }}</td><td>{{ s.number }}</td><td>{{ s.name }}</td><td style="color:#C62828">{{ (s.reasons||[]).join('；') }}</td></tr></tbody></table>
+          </div>
+          <div v-else style="text-align:center;padding:26px;color:#2E7D32;font-size:15px"><i class="bi bi-emoji-smile me-1"></i>全部数据导入成功，无跳过记录</div>
+        </template>
+        <template v-else>
+          <div class="import-summary-bar"><span>数据行：<b>{{ importPreviewSummary.total }}</b></span><span class="badge-ok">可导入 {{ importPreviewSummary.importable }}</span><span class="badge-warn">警告 {{ importPreviewSummary.warn_count }}</span><span class="badge-error">错误 {{ importPreviewSummary.error_count }}</span><span style="color:#7a8aa5;font-size:12px">错误行不会导入；警告行可导入但建议核对</span></div>
+          <div style="overflow:auto;max-height:52vh">
+            <table class="table-custom"><thead><tr><th>Excel行号</th><th>合同编号</th><th>项目名称</th><th>校验结果</th><th>原因</th></tr></thead>
+            <tbody>
+              <tr v-if="!importPreviewItems.length"><td colspan="5" style="text-align:center;padding:30px;color:#999"><div class="empty-state-icon"><i class="bi bi-file-earmark-x"></i></div>文件中没有可导入的数据</td></tr>
+              <tr v-for="it in importPreviewItems" :key="it.row"><td>{{ it.row }}</td><td>{{ it.number }}</td><td>{{ it.name }}</td><td><span :class="statusClass(it.status)">{{ statusText(it.status) }}</span></td><td style="color:#666">{{ (it.reasons||[]).join('；') || '—' }}</td></tr>
+            </tbody></table>
+          </div>
+        </template>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline-custom btn-sm-custom" @click="closeImportPreview">{{ importResultMode==='result'?'关闭':'取消' }}</button>
+        <button v-if="importResultMode!=='result'" class="btn-primary-custom btn-sm-custom" @click="confirmImport" :disabled="importingConfirm || importPreviewSummary.importable===0"><span v-if="importingConfirm">导入中...</span><span v-else><i class="bi bi-check2 me-1"></i>确认导入 {{ importPreviewSummary.importable }} 条</span></button>
+      </div>
+    </div>
+  </div></transition>
+  <!-- 导入错误提示弹窗（居中、需手动关闭） -->
+  <div class="modal-overlay" v-if="importErrorOpen">
+    <div class="modal-content" style="max-width:480px">
+      <div class="modal-header"><h5 style="color:#C62828"><i class="bi bi-exclamation-triangle-fill me-2"></i>导入提示</h5><button class="modal-close" @click="closeImportError" title="关闭">&times;</button></div>
+      <div class="modal-body">
+        <div class="icon-msg-row">
+          <i class="bi bi-x-octagon-fill" style="font-size:34px;color:#f44336;flex-shrink:0;margin-top:2px"></i>
+          <div style="font-size:14px;color:#333;line-height:1.9">{{ importErrorMsg }}</div>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn-primary-custom btn-sm-custom" @click="closeImportError"><i class="bi bi-check2 me-1"></i>确定</button></div>
+    </div>
+  </div>
+</div>
+<script>
+const { createApp, ref, reactive, computed, watch, onMounted, nextTick } = Vue;
+
+const globalLoading = ref(false);
+const store = reactive({
+  user: null,
+  dashboard: { total_contracts: 0, total_amount: 0, dept_contracts: 0, expiring_contracts: 0, pending_project_count: 0, unpaid_amount_total: 0 },
+  reminders: [],
+  pendingPayments: [],
+  config: { default_remind_days: 60, default_attach_max_mb: 20 }
+});
+
+const apiBase = '/api';
+
+async function api(method, path, body) {
+  const isExport = path.endsWith('/export') && method === 'GET';
+  if (!isExport && typeof globalLoading !== 'undefined') globalLoading.value = true;
+  try {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(apiBase + path, opts);
+    if (res.status === 401) { store.user = null; throw new Error('未登录'); }
+    if (isExport) return res;
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('json')) {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '请求失败');
+      return data;
+    }
+    return res;
+  } finally {
+    if (!isExport && typeof globalLoading !== 'undefined') globalLoading.value = false;
+  }
+}
+
+async function apiUpload(cid, type, file) {
+  globalLoading.value = true;
+  try {
+    const fd = new FormData();
+    fd.append('type', type);
+    fd.append('file', file);
+    const res = await fetch(apiBase + '/contracts/' + cid + '/attachments', { method: 'POST', body: fd });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || '附件上传失败');
+    return data;
+  } finally { globalLoading.value = false; }
+}
+
+function formatSize(n) {
+  n = Number(n); if (!n || isNaN(n)) return '';
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+  return (n / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+function toast(msg, type) {
+  const c = document.getElementById('toastContainer');
+  if (!c) return;
+  const div = document.createElement('div');
+  div.className = 'toast-msg ' + (type || 'info');
+  const icon = type === 'success' ? 'bi-check-circle-fill' : type === 'error' ? 'bi-exclamation-circle-fill' : 'bi-info-circle-fill';
+  div.innerHTML = '<i class="bi ' + icon + ' me-1"></i>' + msg;
+  div.onclick = function() { if (this.parentNode) this.parentNode.removeChild(this); };
+  c.appendChild(div);
+  setTimeout(() => { if (div.parentNode) div.parentNode.removeChild(div); }, 3500);
+}
+
+const app = createApp({
+  setup() {
+    const loginForm = reactive({ username: '', password: '' });
+    const loginError = ref('');
+    const loginLoading = ref(false);
+    const sidebarCollapsed = ref(false);
+    const currentView = ref('home');
+    const pendingLimit = ref(2);
+    const reminderLimit = ref(3);
+    const ignoredReminders = reactive({});
+    const searchOpen = ref(true);
+    const search = reactive({ unit: '', dept: '', person: '', name: '', no: '', category: '', method: '', fund_source: '', amount_min: '', amount_max: '', start_date: '', end_date: '', remind_start: '', remind_end: '', is_settled: '', vendor: '', archived: '' });
+    const contractItems = ref([]);
+    const contractTotal = ref(0);
+    const contractPage = ref(1);
+    const contractPageSize = ref(20);
+    const allDepts = ref([]);
+    const users = ref([]);
+    const usersPage = ref(1);
+    const usersPageSize = ref(20);
+    const userSearchOpen = ref(true);
+    const userSearch = reactive({ username: '', name: '', department: '', role: '' });
+    const filteredUsers = computed(() => {
+      const kw = String(userSearch.username || '').trim().toLowerCase();
+      const nm = String(userSearch.name || '').trim();
+      const dp = userSearch.department;
+      const rl = userSearch.role;
+      return users.value.filter(u => {
+        if (kw && !String(u.username || '').toLowerCase().includes(kw)) return false;
+        if (nm && !String(u.name || '').includes(nm)) return false;
+        if (dp && u.department !== dp) return false;
+        if (rl && u.role !== rl) return false;
+        return true;
+      });
+    });
+    function searchUsers() { usersPage.value = 1; }
+    function resetUserSearch() { Object.keys(userSearch).forEach(k => userSearch[k] = ''); usersPage.value = 1; }
+    const usersTotal = computed(() => filteredUsers.value.length);
+    const usersMaxPage = computed(() => Math.max(1, Math.ceil(usersTotal.value / usersPageSize.value)));
+    const usersPages = computed(() => {
+      const mp = usersMaxPage.value, cp = usersPage.value, arr = [];
+      if (mp <= 7) { for (let i = 1; i <= mp; i++) arr.push(i); return arr; }
+      const set = new Set([1, mp, cp - 1, cp, cp + 1]);
+      [...set].filter(x => x >= 1 && x <= mp).sort((a, b) => a - b).forEach((x, i, a) => { if (i && x - a[i - 1] > 1) arr.push('...'); arr.push(x); });
+      return arr;
+    });
+    const pagedUsers = computed(() => { const s = (usersPage.value - 1) * usersPageSize.value; return filteredUsers.value.slice(s, s + usersPageSize.value); });
+    const deptsPage = ref(1);
+    const deptsPageSize = ref(20);
+    const deptsTotal = computed(() => allDepts.value.length);
+    const deptsMaxPage = computed(() => Math.max(1, Math.ceil(deptsTotal.value / deptsPageSize.value)));
+    const deptsPages = computed(() => {
+      const mp = deptsMaxPage.value, cp = deptsPage.value, arr = [];
+      if (mp <= 7) { for (let i = 1; i <= mp; i++) arr.push(i); return arr; }
+      const set = new Set([1, mp, cp - 1, cp, cp + 1]);
+      [...set].filter(x => x >= 1 && x <= mp).sort((a, b) => a - b).forEach((x, i, a) => { if (i && x - a[i - 1] > 1) arr.push('...'); arr.push(x); });
+      return arr;
+    });
+    const pagedDepts = computed(() => { const s = (deptsPage.value - 1) * deptsPageSize.value; return allDepts.value.slice(s, s + deptsPageSize.value); });
+    const logsFilter = reactive({ start_date: '', end_date: '', username: '', module: '', action: '' });
+    const logsSearchOpen = ref(true);
+    const logsItems = ref([]);
+    const logsTotal = ref(0);
+    const logsPage = ref(1);
+    const logsPageSize = ref(20);
+    const logsMaxPage = computed(() => Math.max(1, Math.ceil(logsTotal.value / logsPageSize.value)));
+    const logsPages = computed(() => {
+      const mp = logsMaxPage.value, cp = logsPage.value, arr = [];
+      if (mp <= 7) { for (let i = 1; i <= mp; i++) arr.push(i); return arr; }
+      const set = new Set([1, mp, cp - 1, cp, cp + 1]);
+      [...set].filter(p => p >= 1 && p <= mp).sort((a, b) => a - b).forEach((p, i, a) => { if (i && p - a[i - 1] > 1) arr.push('...'); arr.push(p); });
+      return arr;
+    });
+    const contractModalOpen = ref(false);
+    const contractEditId = ref(null);
+    const contractSaving = ref(false);
+    const contractArchived = ref(false);
+    const defaultForm = { number: '', category: '', name: '', decision_basis: '', bid_control_price: '', price_basis: '', procurement_method: '', winner: '', actual_implementor: '', amount: null, fund_source: '', main_content: '', procurement_date: '', start_date: '', end_date: '', acceptance_date: '', site_manager: '', has_change: '', change_detail: '', is_settled: '', settled_amount: null, paid_amount: null, unpaid_amount: null, term: '', handler: '', remark: '', department: '', next_bid_date: '', remind_days: null };
+    const contractForm = reactive({ ...defaultForm });
+    const attachTypes = [
+      { key: 'decision', label: '决策依据附件', accept: '.jpg,.jpeg,.png,.gif,.webp,.bmp,.pdf,image/*' },
+      { key: 'contract', label: '合同附件', accept: '.jpg,.jpeg,.png,.gif,.webp,.bmp,.pdf,image/*' },
+      { key: 'acceptance', label: '验收结算附件', accept: '.jpg,.jpeg,.png,.gif,.webp,.bmp,.pdf,image/*' }
+    ];
+    const attachments = reactive({ decision: [], contract: [], acceptance: [] });
+    const ATTACH_ALLOWED = ['.jpg','.jpeg','.png','.gif','.webp','.bmp','.pdf'];
+    const formErrors = reactive({});
+    const confirm = reactive({ show: false, title: '', message: '', onOk: null, btnText: '确定', loading: false, needReason: false, reason: '', reasonError: '' });
+    const statsType = ref('by_dept');
+    const statsUnit = ref('');
+    const statsDept = ref('');
+    const statsPerson = ref('');
+    const statsYear = ref('');
+    const statsStartDate = ref('');
+    const statsEndDate = ref('');
+    const statsData = ref([]);
+    const statsChart1 = ref(null);
+    const statsChart2 = ref(null);
+    const chartType = ref('bar');
+    const chartType2 = ref('bar');
+    let chart1Instance = null, chart2Instance = null;
+    const userModalOpen = ref(false);
+    const userEditIndex = ref(null);
+    const userSaving = ref(false);
+    const userForm = reactive({ username: '', name: '', department: '', role: '普通用户', managedDepartments: [] });
+    const isLeadershipDept = (dept) => ['局领导', '主任班子', '中心班子'].includes(String(dept || '').split('-').pop());
+    const deptShortName = (name) => { const s = String(name || ''); const p = '湘潭市机关事务管理局'; return s.startsWith(p) ? '局' + s.slice(p.length) : s; };
+    const managedDisplay = (val) => { const arr = String(val || '').split(/[、,;；]/).map(s => s.trim()).filter(Boolean); return arr.length ? arr.map(deptShortName).join('、') : '-'; };
+    const selfForm = reactive({ new_username: '', old_password: '', new_password: '', confirm_password: '' });
+    const selfSaving = ref(false);
+    const newDept = reactive({ unit: '', dept: '' });
+    const deptEditOpen = ref(false);
+    const deptSaving = ref(false);
+    const deptEditForm = reactive({ unit: '', dept: '', oldUnit: '', oldDept: '' });
+    const settingsDays = ref(60);
+    const settingsLogDays = ref(90);
+    const settingsAttachMb = ref(20);
+    const settingsSaving = ref(false);
+    const importFileInput = ref(null);
+const importPreviewOpen = ref(false);
+const importPreviewItems = ref([]);
+const importPreviewSummary = ref({ total: 0, ok_count: 0, warn_count: 0, error_count: 0, importable: 0 });
+const importResultMode = ref('preview');
+const importResult = ref({ added: 0, skipped: [] });
+const pendingImportFile = ref(null);
+const importingConfirm = ref(false);
+const importErrorOpen = ref(false);
+const importErrorMsg = ref('');
+
+    const roleLabel = computed(() => {
+      const m = { '管理员': '管理员', '普通用户': '普通用户', '查询用户': '查询用户' };
+      return m[store.user?.role] || '';
+    });
+    const canEdit = computed(() => !!store.user && store.user.role !== '查询用户');
+    const totalAmountDisplay = computed(() => {
+      const v = store.dashboard.total_amount;
+      if (v === undefined || v === null || v === 0) return '0.00';
+      return Number(v).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    });
+    const unpaidAmountDisplay = computed(() => {
+      const v = store.dashboard.unpaid_amount_total;
+      if (v === undefined || v === null || v === 0) return '0.00';
+      return Number(v).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    });
+    function fmtMoney(v) {
+      if (v === undefined || v === null || v === '') return '0.00';
+      return Number(v).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    const units = computed(() => { const s = new Set(); allDepts.value.forEach(d => s.add(d.unit)); return [...s]; });
+    const filteredDepts = computed(() => {
+      if (!search.unit) return allDepts.value.map(d => d.dept);
+      return allDepts.value.filter(d => d.unit === search.unit).map(d => d.dept);
+    });
+    const statsFilteredDepts = computed(() => {
+      if (!statsUnit.value) return allDepts.value.map(d => d.dept);
+      return allDepts.value.filter(d => d.unit === statsUnit.value).map(d => d.dept);
+    });
+    const contractMaxPage = computed(() => Math.max(1, Math.ceil(contractTotal.value / contractPageSize.value)));
+    const contractPages = computed(() => {
+      const mp = contractMaxPage.value;
+      if (mp <= 7) return Array.from({ length: mp }, (_, i) => i + 1);
+      const cp = contractPage.value;
+      if (cp <= 4) return [1, 2, 3, 4, 5, '...', mp];
+      if (cp >= mp - 3) return [1, '...', mp - 4, mp - 3, mp - 2, mp - 1, mp];
+      return [1, '...', cp - 1, cp, cp + 1, '...', mp];
+    });
+    const statsHint = computed(() => {
+      const t = statsType.value;
+      if (t === 'pay_dept' || t === 'pay_project') return '图表1：未支付与已支付对比，图表2：合同金额与未支付对比，可独立切换类型';
+      if (t === 'budget_dept' || t === 'budget_project') return '图表1：招标控制价与合同金额对比，图表2：偏差率，可独立切换类型';
+      return '图表1：合同数量，图表2：合同金额，可独立切换类型';
+    });
+    const statsTableHeaders = computed(() => {
+      if (statsData.value.length === 0) return [];
+      return Object.keys(statsData.value[0]);
+    });
+
+    function logoError(e) {
+      const p = e.target.parentNode ? e.target.parentNode.querySelector('.logo-placeholder') : null;
+      if (p) p.style.display = 'flex';
+      e.target.style.display = 'none';
+    }
+    function fieldClass(field) { return formErrors[field] ? 'is-invalid' : ''; }
+    function fieldErr(field) { return formErrors[field] || ''; }
+    function logoErrorNav(e) {
+      // For topnav logo - create fallback or hide
+      e.target.style.display = 'none';
+      const p = e.target.parentNode;
+      if (p) {
+        const fb = document.createElement('span');
+        fb.className = 'nav-logo-fallback';
+        fb.style.cssText = 'width:32px;height:32px;border-radius:6px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:14px;color:rgba(255,255,255,.6)';
+        fb.textContent = '潭';
+        if (!p.querySelector('.nav-logo-fallback')) p.insertBefore(fb, p.querySelector('.nav-title'));
+      }
+    }
+    function confirmCancel() { confirm.show = false; confirm.loading = false; confirm.reason = ''; confirm.reasonError = ''; }
+    function confirmOk() {
+      if (confirm.needReason && !(confirm.reason && confirm.reason.trim())) { confirm.reasonError = '请填写删除原因'; return; }
+      confirm.reasonError = '';
+      if (confirm.onOk) confirm.onOk();
+    }
+    function showConfirm(title, message, onOk, btnText, opts) {
+      confirm.show = true; confirm.title = title; confirm.message = message;
+      confirm.onOk = onOk; confirm.btnText = btnText || '确定'; confirm.loading = false;
+      confirm.needReason = !!(opts && opts.needReason); confirm.reason = (opts && opts.reason) || ''; confirm.reasonError = '';
+    }
+
+    async function doLogin() {
+      if (!loginForm.username || !loginForm.password) { loginError.value = '请输入用户名和密码'; return; }
+      loginError.value = ''; loginLoading.value = true;
+      try {
+        const data = await api('POST', '/login', { username: loginForm.username, password: loginForm.password });
+        store.user = data; loginLoading.value = false;
+        contractPage.value = 1; contractPageSize.value = 20;
+        Object.keys(search).forEach(k => search[k] = '');
+        Object.keys(ignoredReminders).forEach(k => delete ignoredReminders[k]);
+        contractItems.value = [];
+        await Promise.all([fetchDashboard(), fetchReminders(), fetchPendingPayments(), loadDepts(), loadConfig()]);
+        currentView.value = 'home';
+      } catch (e) { loginError.value = e.message || '登录失败'; loginLoading.value = false; }
+    }
+
+    async function doLogout() { try { await api('GET', '/logout'); } catch (e) {} store.user = null; }
+
+    async function fetchDashboard() { try { const d = await api('GET', '/dashboard'); store.dashboard = d; } catch (e) {} }
+    async function fetchReminders() { try { const d = await api('GET', '/reminders'); store.reminders = d.items || []; store.dashboard.expiring_contracts = d.count || 0; reminderLimit.value = 3; } catch (e) {} }
+    async function fetchPendingPayments() { try { const d = await api('GET', '/pending_payments'); store.pendingPayments = d.items || []; pendingLimit.value = 2; } catch (e) {} }
+    async function loadConfig() { try { const d = await api('GET', '/config'); store.config = d; settingsDays.value = d.default_remind_days; settingsLogDays.value = d.log_keep_days || 90; settingsAttachMb.value = d.default_attach_max_mb || 20; } catch (e) {} }
+    async function loadDepts() { try { const d = await api('GET', '/departments'); allDepts.value = d.items || []; deptsPage.value = 1; } catch (e) {} }
+
+    function ignoreReminder(id) { ignoredReminders[id] = true; }
+
+    async function permanentClose(r) {
+      showConfirm('永久关闭提醒', '确定清空合同 "' + r.number + '" 的下次招采时间？此操作不可恢复。', async () => {
+        confirm.loading = true;
+        try { await api('PUT', '/contracts/' + r.id + '/clear_remind'); toast('已清空该合同的下次招采时间', 'success'); await fetchReminders(); await fetchDashboard(); await loadContracts(); }
+        catch (e) { toast(e.message, 'error'); }
+        confirm.show = false;
+      }, '确认关闭');
+    }
+
+    async function exportLogs() {
+      try {
+        const params = new URLSearchParams();
+        Object.entries(logsFilter).forEach(([k, v]) => { if (v) params.set(k, v); });
+        const res = await fetch(apiBase + '/logs/export?' + params.toString(), { credentials: 'include' });
+        if (!res.ok) { toast('导出失败', 'error'); return; }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = '操作日志_export.xlsx';
+        document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+        toast('导出成功', 'success');
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function loadLogs() {
+      try {
+        const params = new URLSearchParams();
+        params.set('page', logsPage.value); params.set('page_size', logsPageSize.value);
+        Object.entries(logsFilter).forEach(([k, v]) => { if (v) params.set(k, v); });
+        const data = await api('GET', '/logs?' + params.toString());
+        logsItems.value = data.items || []; logsTotal.value = data.total || 0;
+      } catch (e) { toast(e.message, 'error'); }
+    }
+    function searchLogs() { logsPage.value = 1; loadLogs(); }
+    function resetLogs() { Object.keys(logsFilter).forEach(k => logsFilter[k] = ''); logsPage.value = 1; loadLogs(); }
+
+    function switchView(view) {
+      currentView.value = view;
+      if (view === 'home') { fetchDashboard(); fetchReminders(); fetchPendingPayments(); }
+      else if (view === 'contracts') { loadContracts(); loadDepts(); }
+      else if (view === 'stats') { loadDepts(); loadStats(); }
+      else if (view === 'users') { loadUsers(); loadDepts(); }
+      else if (view === 'depts') { loadDepts(); }
+      else if (view === 'logs') { loadLogs(); }
+      else if (view === 'settings') { loadConfig(); }
+    }
+
+    async function loadContracts() {
+      try {
+        const params = new URLSearchParams();
+        params.set('page', contractPage.value); params.set('page_size', contractPageSize.value);
+        Object.entries(search).forEach(([k, v]) => { if (v) params.set(k, v); });
+        const data = await api('GET', '/contracts?' + params.toString());
+        if (data.total > 0 && contractPage.value > Math.max(1, Math.ceil(data.total / data.page_size))) {
+          contractPage.value = Math.max(1, Math.ceil(data.total / data.page_size));
+          return loadContracts();
+        }
+        contractItems.value = data.items || []; contractTotal.value = data.total || 0;
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    function resetSearch() { Object.keys(search).forEach(k => search[k] = ''); contractPage.value = 1; loadContracts(); }
+    function searchContracts() { contractPage.value = 1; loadContracts(); }
+
+    function nextBidClass(c) {
+      if (!c.next_bid_date) return '';
+      const d = new Date(c.next_bid_date); const now = new Date();
+      const diff = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
+      if (diff < 0) return 'text-red';
+      const rd = c.remind_days || store.config.default_remind_days || 60;
+      if (diff <= rd) return 'text-orange';
+      return '';
+    }
+
+    function onAttachSelect(type, e) {
+      const files = Array.from(e.target.files || []);
+      e.target.value = '';
+      for (const f of files) {
+        const ext = (f.name.split('.').pop() || '').toLowerCase();
+        if (ATTACH_ALLOWED.indexOf('.' + ext) === -1) { toast('仅支持图片或PDF格式（jpg/jpeg/png/gif/webp/bmp/pdf）', 'error'); continue; }
+        const maxMb = store.config.default_attach_max_mb || 20;
+        if (f.size > maxMb * 1024 * 1024) { toast('附件大小不能超过 ' + maxMb + 'M', 'error'); continue; }
+        attachments[type].push({ display_name: f.name, file: f, size: formatSize(f.size) });
+      }
+    }
+
+    async function removeAttachment(type, idx) {
+      const a = attachments[type][idx];
+      if (!a) return;
+      if (a.id) {
+        try { await api('DELETE', '/attachments/' + a.id); toast('附件已移除', 'success'); }
+        catch (e) { toast(e.message, 'error'); return; }
+      }
+      attachments[type].splice(idx, 1);
+    }
+
+
+    function normDate(v) {
+      if (!v) return '';
+      const m = String(v).trim().match(/^(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})\.?$/);
+      if (!m) return null;
+      const y = parseInt(m[1], 10), mo = parseInt(m[2], 10), d = parseInt(m[3], 10);
+      if (y < 1900 || y > 2100 || mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+      const dt = new Date(y, mo - 1, d);
+      if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+      return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    }
+
+    function validateContractForm() {
+      const errs = {};
+      if (!contractForm.number || !contractForm.number.trim()) errs.number = '编号不能为空';
+      if (!contractForm.category) errs.category = '请选择项目分类';
+      if (!contractForm.name || !contractForm.name.trim()) errs.name = '项目名称不能为空';
+      if (!contractForm.procurement_method) errs.procurement_method = '请选择采购方式';
+      if (!contractForm.fund_source) errs.fund_source = '请选择资金来源';
+      if (contractForm.amount === null || contractForm.amount === '' || isNaN(Number(contractForm.amount))) errs.amount = '请输入有效的合同金额';
+      else if (Number(contractForm.amount) < 0) errs.amount = '金额不能为负数';
+      if (!contractForm.main_content || !contractForm.main_content.trim()) errs.main_content = '合同主要内容不能为空';
+      if (!contractForm.handler || !contractForm.handler.trim()) errs.handler = '经办人不能为空';
+      if (contractForm.procurement_date) {
+        const nd = normDate(contractForm.procurement_date);
+        if (nd === null) errs.procurement_date = '日期格式不正确';
+        else contractForm.procurement_date = nd;
+      }
+      if (contractForm.next_bid_date) {
+        const nd = normDate(contractForm.next_bid_date);
+        if (nd === null) errs.next_bid_date = '日期格式不正确';
+        else contractForm.next_bid_date = nd;
+      }
+      Object.keys(errs).forEach(k => formErrors[k] = errs[k]);
+      return Object.keys(errs).length === 0;
+    }
+
+    async function saveContract() {
+      Object.keys(formErrors).forEach(k => delete formErrors[k]);
+      if (!validateContractForm()) {
+        toast('请根据红色提示填写必填字段', 'error');
+        return;
+      }
+      contractSaving.value = true;
+      try {
+        let cid = contractEditId.value;
+        if (cid) { await api('PUT', '/contracts/' + cid, { ...contractForm }); toast('合同更新成功', 'success'); }
+        else { const res = await api('POST', '/contracts', { ...contractForm }); cid = res.id; toast('合同新增成功', 'success'); }
+        for (const at of attachTypes) {
+          for (const a of attachments[at.key]) {
+            if (a.file) { const up = await apiUpload(cid, at.key, a.file); a.id = up.attachment.id; a.file = null; a.type_label = up.attachment.type_label; }
+          }
+        }
+        contractModalOpen.value = false; Object.keys(formErrors).forEach(k => delete formErrors[k]); await loadContracts(); await fetchDashboard();
+      } catch (e) { toast(e.message, 'error'); }
+      contractSaving.value = false;
+    }
+
+    function openContractModal(c) {
+      contractArchived.value = !!(c && c.archived);
+      Object.keys(formErrors).forEach(k => delete formErrors[k]);
+      Object.keys(attachments).forEach(k => attachments[k] = []);
+      if (c) {
+        contractEditId.value = c.id;
+        Object.keys(defaultForm).forEach(k => {
+          const isNum = k === 'amount' || k === 'settled_amount' || k === 'paid_amount' || k === 'unpaid_amount';
+          contractForm[k] = isNum ? (c[k] !== null && c[k] !== undefined ? c[k] : null) : (c[k] || '');
+        });
+        ['procurement_date','start_date','end_date','acceptance_date','next_bid_date'].forEach(k => {
+          const nd = normDate(contractForm[k]);
+          if (nd) contractForm[k] = nd;
+        });
+        if (!contractForm.department && store.user) contractForm.department = store.user.department || '';
+        (c.attachments || []).forEach(a => {
+          const t = a.type || '';
+          if (attachments[t]) attachments[t].push({ id: a.id, display_name: a.display_name, size: a.size, type_label: a.type_label });
+        });
+      } else {
+        contractEditId.value = null;
+        Object.keys(defaultForm).forEach(k => { contractForm[k] = (k === 'amount' || k === 'settled_amount' || k === 'paid_amount' || k === 'unpaid_amount') ? null : ''; });
+        contractForm.remind_days = store.config.default_remind_days || 60;
+        contractForm.department = store.user ? store.user.department || '' : '';
+      }
+      contractModalOpen.value = true;
+    }
+
+    function printContractPdf() {
+      const f = contractForm;
+      const num = (v) => (v !== null && v !== undefined && v !== '') ? Number(v).toFixed(2) : '';
+      const esc = (v) => String(v === null || v === undefined ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      const d = new Date();
+      const p2 = (n) => String(n).padStart(2, '0');
+      const now = d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds());
+      const who = (store.user && (store.user.name || store.user.username)) || '';
+      const wmText = '打印人：' + esc(who) + '　打印时间：' + now;
+      const items = [
+        ['合同编号', f.number, '项目分类', f.category],
+        ['项目名称', f.name, null, null, true],
+        ['决策依据', f.decision_basis, '招标控制价', f.bid_control_price],
+        ['招标控制价决策的依据', f.price_basis, '采购方式', f.procurement_method],
+        ['中标单位', f.winner, '实际实施单位', f.actual_implementor],
+        ['合同金额（万元）', num(f.amount), '结算金额', num(f.settled_amount)],
+        ['资金来源', f.fund_source, null, null, true],
+        ['已支付', num(f.paid_amount), '未支付', num(f.unpaid_amount)],
+        ['合同主要内容', f.main_content, null, null, true],
+        ['采购时间', f.procurement_date, '开工时间', f.start_date],
+        ['完工时间', f.end_date, '竣工验收时间', f.acceptance_date],
+        ['现场负责人', f.site_manager, '是否有签证或变更', f.has_change],
+        ['签证或变更情况', f.change_detail, '是否结算', f.is_settled],
+        ['期限', f.term, '经办人', f.handler],
+        ['所属部门', f.department, '下次招采时间', f.next_bid_date],
+        ['提醒提前天数', f.remind_days, '备注', f.remark]
+      ];
+      let rowsHtml = '';
+      items.forEach(r => {
+        if (r[4]) {
+          rowsHtml += '<tr><td class="lbl">' + esc(r[0]) + '</td><td colspan="3">' + esc(r[1]) + '</td></tr>';
+        } else {
+          rowsHtml += '<tr><td class="lbl">' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td><td class="lbl">' + esc(r[2]) + '</td><td>' + esc(r[3]) + '</td></tr>';
+        }
+      });
+      const wmPos = [[6, 14], [58, 14], [6, 42], [58, 42], [6, 70], [58, 70]];
+      let wmHtml = '';
+      wmPos.forEach(pos => { wmHtml += '<span class="wm" style="left:' + pos[0] + '%;top:' + pos[1] + '%">' + wmText + '</span>'; });
+      const doc = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>合同打印 - ' + esc(f.number) + '</title><style>' +
+        '*{box-sizing:border-box}html,body{margin:0;padding:0}' +
+        'body{font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;color:#1a2a3a;background:#fff}' +
+        '@page{size:A4;margin:10mm 11mm}' +
+        '.print-body{position:relative;width:100%}' +
+        '.wm{position:fixed;transform:rotate(-45deg);font-size:12px;color:#8a93a0;opacity:.15;white-space:nowrap;font-weight:400;z-index:9999;pointer-events:none;letter-spacing:1px}' +
+        '.print-header{text-align:center;border-bottom:2px solid #1E90FF;padding-bottom:8px;margin-bottom:10px}' +
+        '.print-header h1{font-size:18px;margin:0 0 4px;color:#0A2E5C;letter-spacing:2px}' +
+        '.print-header .sub{font-size:11.5px;color:#5a6b85}' +
+        'table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px}' +
+        'td{border:1px solid #c3cfdd;padding:4px 6px;line-height:1.45;word-break:break-all;page-break-inside:avoid}' +
+        'td.lbl{width:14%;background:#EEF4FB;font-weight:600;color:#0A2E5C;text-align:center;font-size:11px}' +
+        'tr{page-break-inside:avoid}' +
+        '.print-foot{text-align:center;font-size:10.5px;color:#8899aa;margin-top:10px}' +
+        '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.wm{-webkit-print-color-adjust:exact;print-color-adjust:exact}}' +
+        '</style></head><body>' +
+        '<div class="print-body">' +
+        '<div class="print-header"><h1>合同台账信息</h1><div class="sub">合同编号：' + esc(f.number) + '　|　项目名称：' + esc(f.name) + '</div></div>' +
+        '<table>' + rowsHtml + '</table>' +
+        '<div class="print-foot">打印人：' + esc(who) + '　打印时间：' + now + '</div>' +
+        '</div>' + wmHtml +
+        '<script>window.addEventListener("load",function(){setTimeout(function(){try{window.focus()}catch(e){}try{window.print()}catch(e){}},350)});<\/script>' +
+        '</body></html>';
+      let w = null;
+      try { w = window.open('', '_blank'); } catch (e) { w = null; }
+      if (w && w.document) {
+        w.document.open();
+        w.document.write(doc);
+        w.document.close();
+      } else {
+        const iframe = document.createElement('iframe');
+        iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+        document.body.appendChild(iframe);
+        const idoc = iframe.contentDocument;
+        idoc.open(); idoc.write(doc); idoc.close();
+        setTimeout(() => { try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) {} }, 400);
+      }
+    }
+
+    function confirmDelete(c) {
+      showConfirm('删除确认', '确定删除合同 "' + (c.number || '') + '" ？此操作不可恢复。', async () => {
+        confirm.loading = true;
+        try { await api('DELETE', '/contracts/' + c.id, { reason: confirm.reason }); toast('合同已删除', 'success'); await loadContracts(); await fetchDashboard(); }
+        catch (e) { toast(e.message, 'error'); }
+        confirm.show = false;
+      }, '确认删除', { needReason: true });
+    }
+
+    function canArchive(c) {
+      if (!store.user || store.user.role === '查询用户') return false;
+      if (c && c.archived) return false;
+      if (store.user.role === '管理员') return true;
+      const pf = ((c && c.handler) || '').replace(/、/g, ',').split(',').map(s => s.trim()).filter(Boolean);
+      return pf.indexOf(store.user.name) !== -1;
+    }
+
+    function confirmArchive(c) {
+      showConfirm('归档确认', '确定将合同 "' + (c.number || '') + '" 归档？归档后该合同进入只读状态，所有用户仅可浏览，不可再编辑、删除或修改。', async () => {
+        confirm.loading = true;
+        try { await api('PUT', '/contracts/' + c.id + '/archive'); toast('合同已归档', 'success'); await loadContracts(); await fetchReminders(); await fetchDashboard(); }
+        catch (e) { toast(e.message, 'error'); }
+        confirm.show = false;
+      }, '确认归档');
+    }
+
+    async function exportContracts() {
+      try {
+        const params = new URLSearchParams();
+        Object.entries(search).forEach(([k, v]) => { if (v) params.set(k, v); });
+        const res = await fetch(apiBase + '/contracts/export?' + params.toString(), { credentials: 'include' });
+        if (!res.ok) { toast('导出失败', 'error'); return; }
+        const blob = await res.blob(); const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = '合同台账_export.xlsx';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        toast('导出成功', 'success');
+      } catch (e) { toast(e.message, 'error'); }
+    }
+    async function importContracts(ev) {
+      const file = ev.target.files && ev.target.files[0];
+      ev.target.value = '';
+      if (!file) return;
+      if (!/\.(xlsx|xlsm)$/i.test(file.name)) { showImportError('仅支持 .xlsx 格式文件，请选择有效的 xlsx 文件'); return; }
+      pendingImportFile.value = file;
+      importResultMode.value = 'preview';
+      globalLoading.value = true;
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch(apiBase + '/contracts/import/preview', { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || '预览失败');
+        importPreviewItems.value = data.items || [];
+        importPreviewSummary.value = { total: data.total || 0, ok_count: data.ok_count || 0, warn_count: data.warn_count || 0, error_count: data.error_count || 0, importable: data.importable || 0 };
+        importPreviewOpen.value = true;
+      } catch (e) { showImportError(e.message || '预览失败'); }
+      finally { globalLoading.value = false; }
+    }
+    function statusText(s) { return s === 'ok' ? '通过' : s === 'warn' ? '警告' : '错误'; }
+    function statusClass(s) { return s === 'ok' ? 'badge-ok' : s === 'warn' ? 'badge-warn' : 'badge-error'; }
+    async function confirmImport() {
+      if (!pendingImportFile.value || importingConfirm.value) return;
+      importingConfirm.value = true;
+      try {
+        const fd = new FormData();
+        fd.append('file', pendingImportFile.value);
+        const res = await fetch(apiBase + '/contracts/import', { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || '导入失败');
+        importResult.value = { added: data.added || 0, skipped: data.skipped || [] };
+        importResultMode.value = 'result';
+        toast(data.message || '导入成功', data.skipped && data.skipped.length ? 'info' : 'success');
+        await loadContracts();
+      } catch (e) { showImportError(e.message || '导入失败'); }
+      finally { importingConfirm.value = false; }
+    }
+    function closeImportPreview() {
+      if (importingConfirm.value) return;
+      importPreviewOpen.value = false;
+      importResultMode.value = 'preview';
+      pendingImportFile.value = null;
+    }
+    function showImportError(msg) {
+      importErrorMsg.value = msg || '导入失败，请稍后重试';
+      importErrorOpen.value = true;
+    }
+    function closeImportError() {
+      importErrorOpen.value = false;
+      importErrorMsg.value = '';
+    }
+    async function downloadTemplate() {
+      try {
+        const res = await fetch(apiBase + '/contracts/template', { credentials: 'include' });
+        if (res.status === 401) { store.user = null; throw new Error('未登录'); }
+        if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || '模板下载失败'); }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = '合同台账导入模板.xlsx';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        toast('模板已下载，请按模板填写后导入', 'success');
+      } catch (e) { showImportError(e.message || '模板下载失败'); }
+    }
+
+    function resetStats() {
+      statsType.value = 'by_dept';
+      statsUnit.value = '';
+      statsDept.value = '';
+      statsPerson.value = '';
+      statsStartDate.value = '';
+      statsEndDate.value = '';
+      statsYear.value = '';
+      loadStats();
+    }
+
+    async function loadStats() {
+      try {
+        const params = new URLSearchParams();
+        params.set('type', statsType.value);
+        if (statsUnit.value) params.set('unit', statsUnit.value);
+        if (statsDept.value) params.set('dept', statsDept.value);
+        if (statsPerson.value) params.set('person', statsPerson.value);
+        if (statsYear.value) params.set('year', statsYear.value);
+        if (statsStartDate.value) params.set('start_date', statsStartDate.value);
+        if (statsEndDate.value) params.set('end_date', statsEndDate.value);
+        const data = await api('GET', '/statistics?' + params.toString());
+        statsData.value = data.data || [];
+        await renderCharts();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    function makeChart(ctx, type, labels, datasets, titleText) {
+      const cp = ['#1E90FF','#4FC3F7','#0A2E5C','#42A5F5','#7CB342','#FFA726','#AB47BC','#26C6DA','#EF5350','#66BB6A'];
+      // datasets: [{label, data, color}]，支持单/多数据集
+      const norm = (ds) => (Array.isArray(ds) ? ds : []).map((d, i) => ({
+        label: d.label || '',
+        color: d.color || cp[i % cp.length],
+        data: (Array.isArray(d.data) ? d.data : []).map(v => { const n = Number(v); return isNaN(n) ? 0 : n; })
+      }));
+      datasets = norm(datasets);
+      if (datasets.length === 0) datasets = [{ label: '', color: cp[0], data: [] }];
+      if (type === 'pie' || type === 'doughnut') {
+        const d0 = datasets[0];
+        return new Chart(ctx, {
+          type,
+          data: { labels, datasets: [{ data: d0.data, backgroundColor: cp.slice(0, labels.length), borderWidth: 2, borderColor: '#fff' }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: titleText, color: '#333', font: { size: 14 }, padding: { top: 1.5 } }, legend: { position: 'right', labels: { font: { size: 11 } } } } }
+        });
+      }
+      if (type === 'line') {
+        return new Chart(ctx, {
+          type: 'line',
+          data: { labels, datasets: datasets.map((d, i) => ({ label: d.label, data: d.data, borderColor: d.color, backgroundColor: d.color + '1A', fill: i === 0, tension: 0.3 })) },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: titleText, color: '#333', font: { size: 14 } } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+        });
+      }
+      // bar (default)
+      return new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: datasets.map((d, i) => ({ label: d.label, data: d.data, backgroundColor: datasets.length === 1 ? cp.slice(0, labels.length) : d.color, borderRadius: 4 })) },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: titleText, color: '#333', font: { size: 14 } }, legend: { display: datasets.length > 1 } }, scales: { y: { beginAtZero: true } } }
+      });
+    }
+
+    async function renderCharts() {
+      // Wait for Vue to rebuild canvases when chartType or statsType changes
+      await nextTick();
+      if (!statsChart1.value || !statsChart2.value) return;
+      // Defensive cleanup: destroy any chart still bound to the canvases
+      const cv1 = statsChart1.value;
+      const cv2 = statsChart2.value;
+      const old1 = Chart.getChart(cv1);
+      if (old1) old1.destroy();
+      const old2 = Chart.getChart(cv2);
+      if (old2) old2.destroy();
+      chart1Instance = null;
+      chart2Instance = null;
+      const data = statsData.value;
+      if (!Array.isArray(data) || data.length === 0) return;
+      const DIM_KEYS = ['部门','分类','经办人','时间','项目','资金来源'];
+      const shortDeptName = (name) => {
+        const s = String(name ?? '');
+        const prefix = '湘潭市机关事务管理局';
+        return s.startsWith(prefix) ? '局' + s.slice(prefix.length) : s;
+      };
+      const labels = data.map(r => {
+        const keys = Object.keys(r || {});
+        const dim = keys.find(k => DIM_KEYS.includes(k));
+        let label = dim ? String(r[dim] ?? '') : (keys.length ? String(r[keys[0]] ?? '') : '');
+        if (dim === '部门') label = shortDeptName(label);
+        return label;
+      });
+      const num = (r, k) => { const n = Number(r[k]); return isNaN(n) ? 0 : n; };
+      const counts = data.map(r => num(r, '合同数'));
+      const amounts = data.map(r => num(r, '合同金额') || num(r, '合同金额合计'));
+      if (labels.length === 0) return;
+      const t1 = chartType.value || 'bar';
+      const t2 = chartType2.value || 'bar';
+      if (statsType.value === 'pay_dept' || statsType.value === 'pay_project') {
+        const unpaid = data.map(r => num(r, '未支付'));
+        const paid = data.map(r => num(r, '已支付'));
+        chart1Instance = makeChart(statsChart1.value.getContext('2d'), t1, labels, [{ label: '未支付(万元)', data: unpaid, color: '#EF5350' }, { label: '已支付(万元)', data: paid, color: '#7CB342' }], '图表1 未支付金额与已支付金额对比（万元）');
+        chart2Instance = makeChart(statsChart2.value.getContext('2d'), t2, labels, [{ label: '合同金额(万元)', data: amounts, color: '#1E90FF' }, { label: '未支付(万元)', data: unpaid, color: '#EF5350' }], '图表2 合同金额与未支付对比（万元）');
+        return;
+      }
+      if (statsType.value === 'budget_dept' || statsType.value === 'budget_project') {
+        const bids = data.map(r => num(r, '招标控制价'));
+        const rates = data.map(r => num(r, '偏差率'));
+        chart1Instance = makeChart(statsChart1.value.getContext('2d'), t1, labels, [{ label: '招标控制价(万元)', data: bids, color: '#FFA726' }, { label: '合同金额(万元)', data: amounts, color: '#1E90FF' }], '图表1 预算执行情况对比（万元）');
+        chart2Instance = makeChart(statsChart2.value.getContext('2d'), t2, labels, [{ label: '偏差率(%)', data: rates, color: '#AB47BC' }], '图表2 预算执行偏差率（%）');
+        return;
+      }
+      chart1Instance = makeChart(statsChart1.value.getContext('2d'), t1, labels, [{ label: '合同数', data: counts, color: '#1E90FF' }], '图表1 合同数量统计（个）');
+      chart2Instance = makeChart(statsChart2.value.getContext('2d'), t2, labels, [{ label: '金额(万元)', data: amounts, color: '#1E90FF' }], '图表2 合同金额统计（万元）');
+    }
+
+        async function exportStats() {
+      try {
+        const params = new URLSearchParams();
+        if (statsUnit.value) params.set('unit', statsUnit.value);
+        if (statsDept.value) params.set('dept', statsDept.value);
+        if (statsPerson.value) params.set('person', statsPerson.value);
+        const res = await fetch(apiBase + '/contracts/export?' + params.toString(), { credentials: 'include' });
+        if (!res.ok) { toast('导出失败', 'error'); return; }
+        const blob = await res.blob(); const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = '合同台账_export.xlsx';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        toast('导出成功', 'success');
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function loadUsers() { try { const d = await api('GET', '/users'); users.value = d.items || []; usersPage.value = 1; } catch (e) { toast(e.message, 'error'); } }
+
+    function openUserModal(u) {
+      if (u) {
+        userEditIndex.value = u.username; userForm.username = u.username; userForm.name = u.name; userForm.department = u.department; userForm.role = u.role;
+        userForm.managedDepartments = String(u.managed_departments || '').split(/[、,;；]/).map(s => s.trim()).filter(Boolean);
+      }
+      else { userEditIndex.value = null; userForm.username = ''; userForm.name = ''; userForm.department = ''; userForm.role = '普通用户'; userForm.managedDepartments = []; }
+      userModalOpen.value = true;
+    }
+
+    async function saveUser() {
+      if (!userForm.username || !userForm.name || !userForm.department) { toast('请填写完整信息', 'error'); return; }
+      userSaving.value = true;
+      try {
+        const managed = (userForm.department && isLeadershipDept(userForm.department)) ? userForm.managedDepartments : [];
+        if (userEditIndex.value) { await api('PUT', '/users/' + userEditIndex.value, { name: userForm.name, department: userForm.department, role: userForm.role, managed_departments: managed }); toast('用户更新成功', 'success'); }
+        else { await api('POST', '/users', { username: userForm.username, name: userForm.name, department: userForm.department, role: userForm.role, managed_departments: managed }); toast('用户新增成功', 'success'); }
+        userModalOpen.value = false; await loadUsers();
+      } catch (e) { toast(e.message, 'error'); }
+      userSaving.value = false;
+    }
+
+    async function saveSelf() {
+      if (!selfForm.new_username && !selfForm.new_password) { toast('请填写要修改的新用户名或新密码', 'error'); return; }
+      if (selfForm.new_password && selfForm.new_password !== selfForm.confirm_password) { toast('两次输入的新密码不一致', 'error'); return; }
+      selfSaving.value = true;
+      try {
+        const d = await api('PUT', '/users/' + store.user.username + '/self', { new_username: selfForm.new_username, old_password: selfForm.old_password, new_password: selfForm.new_password });
+        if (d.username) store.user.username = d.username;
+        selfForm.new_username = ''; selfForm.old_password = ''; selfForm.new_password = ''; selfForm.confirm_password = '';
+        toast('修改成功', 'success');
+      } catch (e) { toast(e.message, 'error'); }
+      selfSaving.value = false;
+    }
+
+    function cancelSelf() {
+      selfForm.new_username = ''; selfForm.old_password = ''; selfForm.new_password = ''; selfForm.confirm_password = '';
+    }
+
+    function resetPassword(u) {
+      showConfirm('重置密码', '确定将用户 "' + u.name + '" 的密码重置为 123456？', async () => {
+        confirm.loading = true;
+        try { await api('PUT', '/users/' + u.username, { reset_password: true }); toast('密码已重置为 123456', 'success'); } catch (e) { toast(e.message, 'error'); }
+        confirm.show = false;
+      }, '确认重置');
+    }
+
+    function confirmDeleteUser(u) {
+      showConfirm('删除用户', '确定删除用户 "' + u.name + '" ？此操作不可恢复。', async () => {
+        confirm.loading = true;
+        try { await api('DELETE', '/users/' + u.username); toast('用户已删除', 'success'); await loadUsers(); } catch (e) { toast(e.message, 'error'); }
+        confirm.show = false;
+      }, '确认删除');
+    }
+
+    async function addDepartment() {
+      if (!newDept.unit || !newDept.dept) { toast('请输入单位名称和科室名称', 'error'); return; }
+      try { await api('POST', '/departments', { unit: newDept.unit, dept: newDept.dept }); toast('部门新增成功', 'success'); newDept.unit = ''; newDept.dept = ''; await loadDepts(); }
+      catch (e) { toast(e.message, 'error'); }
+    }
+
+    function confirmDeleteDept(d) {
+      showConfirm('删除部门', '确定删除部门 "' + d.display + '" ？若有用户关联则无法删除。', async () => {
+        confirm.loading = true;
+        try { await api('DELETE', '/departments?unit=' + encodeURIComponent(d.unit) + '&dept=' + encodeURIComponent(d.dept)); toast('部门已删除', 'success'); await loadDepts(); }
+        catch (e) { toast(e.message, 'error'); }
+        confirm.show = false;
+      }, '确认删除');
+    }
+
+    function openDeptEdit(d) {
+      deptEditForm.unit = d.unit; deptEditForm.dept = d.dept;
+      deptEditForm.oldUnit = d.unit; deptEditForm.oldDept = d.dept;
+      deptEditOpen.value = true;
+    }
+    async function saveDept() {
+      if (!deptEditForm.unit || !deptEditForm.dept) { toast('请输入单位名称和部门名称', 'error'); return; }
+      deptSaving.value = true;
+      try {
+        await api('PUT', '/departments', { unit: deptEditForm.oldUnit, dept: deptEditForm.oldDept, new_unit: deptEditForm.unit, new_dept: deptEditForm.dept });
+        toast('部门修改成功', 'success');
+        deptEditOpen.value = false;
+        await loadDepts();
+      } catch (e) { toast(e.message, 'error'); }
+      deptSaving.value = false;
+    }
+
+    async function saveSettings() {
+      if (!settingsDays.value || settingsDays.value < 1 || settingsDays.value > 365) { toast('提醒天数应在1-365之间', 'error'); return; }
+      if (!settingsLogDays.value || settingsLogDays.value < 1 || settingsLogDays.value > 3650) { toast('日志保留天数应在1-3650之间', 'error'); return; }
+      if (!settingsAttachMb.value || settingsAttachMb.value < 1 || settingsAttachMb.value > 200) { toast('附件大小限制应在1-200(M)之间', 'error'); return; }
+      settingsSaving.value = true;
+      try { await api('PUT', '/config', { default_remind_days: settingsDays.value, log_keep_days: settingsLogDays.value, default_attach_max_mb: settingsAttachMb.value }); toast('设置已保存', 'success'); await loadConfig(); } catch (e) { toast(e.message, 'error'); }
+      settingsSaving.value = false;
+    }
+
+    async function init() {
+      try { const d = await api('GET', '/current_user'); store.user = d; await Promise.all([fetchDashboard(), fetchReminders(), fetchPendingPayments(), loadDepts(), loadConfig()]); }
+      catch (e) { console.log('not logged in'); }
+    }
+
+    onMounted(() => { init(); });
+
+    return {
+      loginForm, loginError, loginLoading, doLogin, doLogout, logoError,
+      store, roleLabel, totalAmountDisplay, unpaidAmountDisplay, fmtMoney, sidebarCollapsed, currentView, pendingLimit, reminderLimit, switchView,
+      ignoredReminders, ignoreReminder, permanentClose,
+      confirm, confirmCancel, confirmOk, showConfirm,
+      search, searchOpen, units, filteredDepts, resetSearch, searchContracts,
+      contractItems, contractTotal, contractPage, contractPageSize, contractMaxPage, contractPages,
+      loadContracts, nextBidClass, exportContracts, importFileInput, importContracts,
+      downloadTemplate, importPreviewOpen, importPreviewItems, importPreviewSummary,
+      importResultMode, importResult, statusText, statusClass, confirmImport, closeImportPreview, importingConfirm,
+      importErrorOpen, importErrorMsg, closeImportError,
+      contractModalOpen, contractEditId, contractForm, contractSaving, canEdit,
+      printContractPdf,
+      attachTypes, attachments, onAttachSelect, removeAttachment,
+      openContractModal, saveContract, confirmDelete, confirmArchive, canArchive, contractArchived,
+      allDepts, loadDepts, deptsPage, deptsPageSize, deptsTotal, deptsMaxPage, deptsPages, pagedDepts,
+      chartType, chartType2, statsType, statsUnit, statsDept, statsPerson, statsYear, statsStartDate, statsEndDate,
+      statsData, statsTableHeaders, statsChart1, statsChart2,
+      statsFilteredDepts, loadStats, resetStats, exportStats,
+      users, loadUsers, usersPage, usersPageSize, usersTotal, usersMaxPage, usersPages, pagedUsers, userSearchOpen, userSearch, filteredUsers, searchUsers, resetUserSearch, userModalOpen, userEditIndex, userForm, userSaving, isLeadershipDept, managedDisplay,
+      logsFilter, logsSearchOpen, logsItems, logsTotal, logsPage, logsPageSize, logsMaxPage, logsPages, loadLogs, searchLogs, resetLogs, exportLogs,
+      openUserModal, saveUser, resetPassword, confirmDeleteUser, saveSelf, cancelSelf, selfForm, selfSaving,
+      newDept, addDepartment, confirmDeleteDept, deptEditOpen, deptEditForm, deptSaving, openDeptEdit, saveDept,
+      globalLoading, formErrors, settingsDays, settingsLogDays, settingsAttachMb, settingsSaving, saveSettings
+    };
+  }
+});
+
+app.mount('#app');
+</script>
+</body>
+</html>
+
+
