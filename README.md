@@ -1,2 +1,13 @@
 潭合同-台账管理系统
 实现合同信息全过程、信息化管理，提供合同全要素信息、附件添加、修改、删除，提供按角色权限查询、统计分析，合同到期提醒，合同框选支付提醒等功能。
+
+
+
+启动命令
+
+cd C:\\Users\\jghq\\Desktop\\contract\_manager
+
+pip install -r requirements.txt
+
+python app.py
+

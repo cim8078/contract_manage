@@ -11,6 +11,7 @@
 <script src="/static/vendor/js/xlsx.full.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Microsoft YaHei','Segoe UI',sans-serif}
+:root{--primary:#1E90FF;--text-secondary:#5F6673;--text-tertiary:#4B5563;--badge-radius:999px}
 body{background:#F0F4FA;min-height:100vh}
 .login-page{min-height:100vh;background:linear-gradient(135deg,#0A2E5C 0%,#1E90FF 100%);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
 .login-page::before{content:"";position:absolute;width:200%;height:200%;top:-50%;left:-50%;background:radial-gradient(circle,rgba(255,255,255,.03) 1px,transparent 1px);background-size:40px 40px;animation:drift 20s linear infinite}
@@ -51,19 +52,32 @@ body{background:#F0F4FA;min-height:100vh}
 .topnav .nav-right .user-info{color:rgba(255,255,255,.85)}
 .topnav .logout-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .2s}
 .topnav .logout-btn:hover{background:rgba(255,255,255,.2)}
-.main-content{margin-left:220px;margin-top:60px;flex:1;padding:24px;min-height:calc(100vh - 60px);transition:margin-left .3s}
+.main-content{margin-left:220px;margin-top:60px;flex:1;min-width:0;padding:32px;min-height:calc(100vh - 60px);transition:margin-left .3s}
 .main-content.expanded{margin-left:60px}
-.stat-card{background:#fff;border-radius:14px;padding:20px 14px;box-shadow:0 2px 12px rgba(0,0,0,.06);display:flex;align-items:center;transition:transform .2s,box-shadow .2s;height:100%}
-.stat-card > * + *{margin-left:16px}
-.stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,.1)}
-.stat-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px}
-.stat-icon.blue{background:rgba(30,144,255,.12);color:#1E90FF}
-.stat-icon.green{background:rgba(76,175,80,.12);color:#4CAF50}
-.stat-icon.orange{background:rgba(255,152,0,.12);color:#FF9800}
-.stat-icon.red{background:rgba(244,67,54,.12);color:#f44336}
-.stat-icon.purple{background:rgba(156,39,176,.12);color:#9C27B0}
-.stat-info h3{font-size:28px;font-weight:700;margin:0;color:#1a1a2e;line-height:1.2;white-space:nowrap}
-.stat-info p{margin:2px 0 0;font-size:13px;color:#666;white-space:nowrap}
+/* ---- 顶部数据概览：数值/单位分层 + 克制配色（仅异常数据用低饱和警示色）+ 呼吸阴影 ---- */
+.stat-card{position:relative;background:#fff;border-radius:14px;padding:18px 16px;box-shadow:0 2px 12px rgba(0,0,0,.04);display:flex;align-items:center;transition:box-shadow .2s,transform .2s;height:100%}
+.stat-card > * + *{margin-left:14px}
+.stat-card:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.07)}
+.stat-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;background:#EDF2FA;color:#5B7CA8}
+.stat-icon.warn{background:#FDF0E2;color:#C67C2E}
+.stat-info{min-width:0;cursor:help}
+.stat-figure{display:flex;align-items:baseline;gap:4px}
+.stat-value{font-size:24px;font-weight:700;color:#1a1a2e;line-height:1.15;font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.stat-unit{font-size:12px;font-weight:400;color:var(--text-secondary);line-height:1;white-space:nowrap}
+.stat-info p{margin:4px 0 0;font-size:12px;color:var(--text-secondary);line-height:1.3}
+/* 总合同数卡片：提示图标 + 悬浮气泡（环形图构成） */
+.stat-label-hint{cursor:help}
+.stat-hint{margin-left:4px;font-size:12px;color:#9AA3B0;cursor:help;vertical-align:middle;transition:color .2s}
+.stat-hint:hover{color:var(--primary)}
+.stat-tip{position:absolute;left:50%;top:calc(100% + 10px);transform:translateX(-50%);z-index:40;width:250px;padding:14px;background:#fff;border:1px solid #EEF2F7;border-radius:8px;box-shadow:0 10px 25px rgba(16,42,76,.15);text-align:center}
+.stat-tip::before{content:"";position:absolute;top:-7px;left:50%;margin-left:-7px;width:12px;height:12px;background:#fff;border-left:1px solid #EEF2F7;border-top:1px solid #EEF2F7;transform:rotate(45deg)}
+.stat-tip-canvas{display:block;margin:0 auto;width:110px;height:110px}
+.stat-tip-text{margin-top:10px;font-size:12px;color:var(--text-secondary);line-height:1.6;text-align:left}
+/* ---- 模块标题视觉锚点（主色小色条）+ 弱化的“更多”链接 ---- */
+.module-title{margin:0;padding-left:10px;border-left:4px solid var(--primary);font-size:16px;font-weight:700;color:#0A2E5C;line-height:1.4;display:flex;align-items:center;gap:6px}
+.module-title .head-sub{margin-left:2px;font-size:13px;font-weight:400;color:var(--text-secondary)}
+.more-link{color:var(--text-secondary);font-weight:600;text-decoration:none;font-size:14px;white-space:nowrap;transition:color .2s}
+.more-link:hover{color:var(--primary)}
 .white-card{background:#fff;border-radius:14px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:20px}
 .table-custom{width:100%;border-collapse:collapse;font-size:14px}
 .table-custom thead{background:linear-gradient(135deg,#0A2E5C,#1E90FF);color:#fff}
@@ -72,6 +86,18 @@ body{background:#F0F4FA;min-height:100vh}
 .table-custom tbody tr:nth-child(even){background:#F8FAFE}
 .table-custom tbody tr:hover{background:#E3F0FF}
 .contracts-table th,.contracts-table td{text-align:center}
+/* ---- 查询统计选项卡（项目合同 / 资产合同）：分段式选项卡，选中项为白色高亮块 ---- */
+.stats-tabs{display:inline-flex;align-items:center;gap:4px;background:#EFF3F9;border:1px solid #E1E8F1;border-radius:10px;padding:4px;margin-bottom:16px;flex-wrap:wrap}
+.stats-tab{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid transparent;border-radius:8px;padding:8px 16px;font-size:14px;font-weight:600;color:var(--text-secondary);cursor:pointer;transition:background-color .2s,color .2s,border-color .2s,box-shadow .2s}
+.stats-tab i{font-size:15px}
+.stats-tab:hover{color:#0A4682;background:rgba(30,144,255,.1)}
+.stats-tab.active{background:#fff;border-color:#B7D4F5;color:#0A4682;box-shadow:0 1px 3px rgba(16,42,76,.1)}
+.stats-tab.active i{color:var(--primary)}
+/* 资产合同台账：固定列宽比例，保证“资产名称/位置”有足够展示宽度 */
+.asset-table{table-layout:fixed}
+.asset-table th,.asset-table td{padding:10px 8px;word-break:break-word}
+.asset-table th{white-space:normal;line-height:1.35}
+.asset-table td:last-child .btn-sm-custom{padding:5px 9px}
 .contracts-table td:last-child{white-space:nowrap;text-align:center}
 .contracts-table td:last-child button{vertical-align:middle}
 .table-custom .text-orange{color:#FF9800;font-weight:600}
@@ -91,7 +117,7 @@ body{background:#F0F4FA;min-height:100vh}
 @keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .modal-header{padding:20px 24px;border-bottom:1px solid #eef2f7;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:10;border-radius:16px 16px 0 0}
 .modal-header h5{font-size:18px;font-weight:700;color:#0A2E5C;margin:0}
-.modal-close{background:none;border:none;font-size:24px;color:#999;cursor:pointer;padding:0;line-height:1}
+.modal-close{background:none;border:none;font-size:24px;color:var(--text-secondary);cursor:pointer;padding:0;line-height:1}
 .modal-close:hover{color:#333}
 .modal-body{padding:24px}
 .modal-footer{padding:16px 24px;border-top:1px solid #eef2f7;display:flex;justify-content:flex-end;position:sticky;bottom:0;background:#fff;border-radius:0 0 16px 16px}
@@ -109,6 +135,12 @@ body{background:#F0F4FA;min-height:100vh}
 .form-control-sm-custom{padding:8px 12px;border:1px solid #d0d7de;border-radius:8px;font-size:13px;transition:border-color .2s,box-shadow .2s;width:100%}
 .form-control-sm-custom:focus{border-color:#1E90FF;box-shadow:0 0 0 3px rgba(30,144,255,.12);outline:none}
 .form-select-sm-custom{padding:8px 12px;border:1px solid #d0d7de;border-radius:8px;font-size:13px;background:#fff;width:100%}
+.settings-section-title{font-size:12px;font-weight:700;color:#0A2E5C;margin:0 0 8px;padding-left:8px;border-left:3px solid #1E90FF;line-height:1.1}
+.field-hint{font-size:12px;color:var(--text-secondary);margin-top:4px;line-height:1.5}
+.switch-item{display:flex;align-items:center;gap:8px;min-height:35px;padding:0 12px;border:1px solid #d0d7de;border-radius:8px;font-size:13px;color:#333;background:#fbfcfe;cursor:pointer;user-select:none;margin:0}
+.switch-item input{width:15px;height:15px;margin:0;cursor:pointer;accent-color:#1E90FF}
+.tpl-item{border:1px solid #eef2f7;border-radius:10px;padding:12px 14px;background:#fbfcfe;height:100%}
+.tpl-item .form-label-sm{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
 .form-control-sm-custom[readonly]{background:#f5f7fa;cursor:not-allowed}
 .btn-primary-custom{background:linear-gradient(135deg,#1E90FF,#0A2E5C);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
 .btn-primary-custom:hover{box-shadow:0 4px 15px rgba(30,144,255,.4);transform:translateY(-1px)}
@@ -123,27 +155,51 @@ body{background:#F0F4FA;min-height:100vh}
 .attach-item{display:flex;align-items:center;padding:5px 8px;border:1px solid #e3e8f0;border-radius:6px;background:#f8fafe;font-size:12px;margin-bottom:4px;word-break:break-all}
 .attach-item > * + *{margin-left:6px}
 .attach-item a{flex:1;min-width:0}
-.attach-size{color:#999;font-size:11px;white-space:nowrap}
-.attach-remove{background:none;border:none;color:#999;font-size:16px;line-height:1;cursor:pointer;padding:0 2px}
+.attach-size{color:var(--text-secondary);font-size:11px;white-space:nowrap}
+.attach-remove{background:none;border:none;color:var(--text-secondary);font-size:16px;line-height:1;cursor:pointer;padding:0 2px}
 .attach-remove:hover{color:#f44336}
-.reminder-item{padding:12px 16px;border-left:4px solid #FF9800;background:#FFF8E1;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px}
-.reminder-item .ri-info{display:flex;font-size:13px;color:#555;flex-wrap:wrap;flex:1;min-width:0}
-.reminder-item .ri-info > * + *{margin-left:16px}
-.reminder-item .ri-info > *{margin-bottom:4px}
-.reminder-item .ri-info strong{color:#333}
-.reminder-item .ri-actions{display:flex;flex-shrink:0;align-items:center}
-.reminder-item .ri-actions > * + *{margin-left:6px}
-.remaining-tag{padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600}
-.remaining-tag.warning{background:#FF9800;color:#fff}
-.remaining-tag.danger{background:#f44336;color:#fff}
-.remaining-tag.safe{background:#4CAF50;color:#fff}
-.remind-hint{margin-left:16px;font-size:13px;color:#555;font-weight:400}
+/* ---- 提醒列表：左（编号）/中（标题·元数据）/右（操作）栅格 + 极浅分割线，不做独立卡片 ---- */
+.reminder-item{display:flex;align-items:center;gap:16px;padding:16px 20px;border-top:1px solid #f0f2f5;transition:background-color .15s}
+.reminder-item:first-child{border-top:none}
+.reminder-item:hover{background:#F7F9FC}
+.reminder-item .ri-no{flex:0 0 auto;font-size:12px;line-height:18px;color:#5A6472;background:#F3F4F6;border-radius:4px;padding:2px 8px;font-variant-numeric:tabular-nums}
+.reminder-item .ri-body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px}
+.reminder-item .ri-head{display:flex;align-items:center;gap:8px;min-width:0}
+.reminder-item .ri-title{flex:0 1 auto;min-width:0;font-size:14px;font-weight:600;color:#1F2D3D;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .15s}
+.reminder-item .ri-title:hover{color:#1E90FF;text-decoration:underline}
+.reminder-item .ri-meta{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;min-width:0;font-size:12.5px;color:var(--text-secondary);font-variant-numeric:tabular-nums}
+.reminder-item .ri-meta > span{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reminder-item .ri-sep{flex:0 0 auto;color:var(--text-secondary)}
+.reminder-item .ri-actions{flex:0 0 auto;margin-left:auto;display:flex;align-items:center;gap:8px}
+.reminder-item .ri-actions button{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;transition:background-color .15s,border-color .15s,color .15s}
+/* 忽略：灰色幽灵按钮（仅描边）；永久关闭：浅红底 + 红字 */
+.reminder-item .btn-ignore{background:transparent;border:1px solid #D8DCE3;color:#5A6472}
+.reminder-item .btn-ignore:hover{background:#F5F7FA;border-color:#C3C9D2;color:#3F4854}
+.reminder-item .btn-remind-close{background:#FDECEC;border:1px solid #F5D2D2;color:#C0392B}
+.reminder-item .btn-remind-close:hover{background:#FBDDDD;border-color:#EFBEBE;color:#A93226}
+/* ---- 公共状态标签 Badge：统一圆角/内边距/字号，颜色按业务状态（已过期红 / 即将到期橙 / 正常绿）---- */
+.badge-status{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:2px 10px;border-radius:var(--badge-radius);font-size:12px;font-weight:600;line-height:18px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.badge-status.is-danger{background:#FBECEC;color:#C2343C}
+.badge-status.is-warning{background:#FBF1DE;color:#8A610F}
+.badge-status.is-ok{background:#EAF4EE;color:#3D7A55}
+.badge-status.is-info{background:#E9F0FA;color:#3F6497}
+/* 窄屏预案：≥576px 保持单行 + 标题省略号；手机端编号/按钮固定在上，标题区折到下一行 */
+@media(max-width:575px){
+  .reminder-item{flex-wrap:wrap;gap:10px;padding:14px 16px}
+  .reminder-item .ri-body{flex:1 1 100%;order:3}
+  .reminder-item .ri-no{order:1}
+  .reminder-item .ri-actions{order:2}
+  .reminder-item .ri-title{white-space:normal;overflow:visible;text-overflow:clip}
+  .reminder-item .ri-meta > span{white-space:normal;overflow:visible;text-overflow:clip}
+}
+.contract-name-link{color:#1E90FF;text-decoration:none;cursor:pointer}
+.contract-name-link:hover{color:#0d6efd;text-decoration:underline}
 .search-toggle{cursor:pointer;display:flex;align-items:center;color:#1E90FF;font-weight:500;font-size:14px;padding:4px 0;user-select:none}
 .search-toggle > * + *{margin-left:6px}
 .search-panel{overflow:hidden;transition:max-height .3s ease;max-height:0}
 .search-panel.open{max-height:1200px}
 .chart-container{position:relative;height:300px;width:100%}
-.empty-state{text-align:center;padding:40px;color:#999}
+.empty-state{text-align:center;padding:40px;color:var(--text-secondary)}
 .empty-state i{font-size:48px;color:#d0d7de;margin-bottom:12px}
 .empty-state p{font-size:15px;margin:0}
 .toast-container{position:fixed;top:20px;right:20px;z-index:9999}
@@ -182,24 +238,17 @@ body{background:#F0F4FA;min-height:100vh}
 /* ---- Empty State Enhanced ---- */
 .empty-state-icon{font-size:56px;color:#d0d7de;margin-bottom:8px;line-height:1}
 /* ---- Archive ---- */
-.badge-archive{display:inline-flex;align-items:center;background:#e8f0fe;color:#1E90FF;border:1px solid #b6d4fe;border-radius:10px;padding:2px 8px;font-size:12px;white-space:nowrap}
-.badge-archive > * + *{margin-left:4px}
 .archive-banner{background:#fff7e6;border:1px solid #ffd591;color:#d48806;border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:12px;display:flex;align-items:center}
-.readonly-tag{display:inline-flex;align-items:center;color:#999;font-size:12px}
-.readonly-tag > * + *{margin-left:4px}
 .table-custom tbody tr.row-archived{opacity:.62;background:#f2f5f9}
 .import-summary-bar{display:flex;align-items:center;gap:14px;padding:12px 16px;background:#F0F4FA;border:1px solid #DCE7F5;border-radius:8px;margin-bottom:14px;font-size:14px;color:#0A2E5C;flex-wrap:wrap}
-.badge-ok{display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;background:#E8F5E9;color:#2E7D32;font-weight:600}
-.badge-warn{display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;background:#FFF3E0;color:#E65100;font-weight:600}
-.badge-error{display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;background:#FFEBEE;color:#C62828;font-weight:600}
 
 .table-custom tbody tr.row-archived:hover{background:#eef3f9}
 /* ---- Confirm Dialog ---- */
 .confirm-dialog{animation:modalIn .25s ease}
 /* ---- Chart Empty ---- */
-.chart-empty{height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#aaa;font-size:14px;border:2px dashed #eef2f7;border-radius:12px}
+.chart-empty{height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-secondary);font-size:14px;border:2px dashed #eef2f7;border-radius:12px}
 /* ---- Responsive enhancements ---- */
-@media(max-width:1366px){.main-content{padding:16px}.white-card{padding:16px}}
+@media(max-width:1366px){.main-content{padding:24px}.white-card{padding:16px}}
 @media(max-width:768px){.sidebar{width:60px!important}.sidebar .menu-item span{display:none!important}.sidebar .menu-item{padding:14px;justify-content:center}.sidebar .menu-badge{display:none!important}.main-content{margin-left:60px!important}.stats-grid{grid-template-columns:1fr!important}}
 /* ---- Scrollable table fix ---- */
 .table-wrap{overflow-x:auto;margin:0 -4px}
@@ -207,6 +256,30 @@ body{background:#F0F4FA;min-height:100vh}
 .toast-msg{cursor:pointer}
 
 /* 合同打印视图采用独立新标签页（见 printContractPdf），样式内嵌于打印窗口 */
+
+/* ---- 编辑资产合同弹窗：轻量化极简风（作用域限定该弹窗，不影响其它页面/弹窗） ---- */
+.asset-modal .form-label-sm{color:#606266}
+.asset-modal .form-control-sm-custom,.asset-modal .form-select-sm-custom{color:#333;border-color:#e4e7ed}
+.asset-modal .form-control-sm-custom:focus,.asset-modal .form-select-sm-custom:focus{border-color:#c9d4e3;box-shadow:0 0 0 3px rgba(30,144,255,.07)}
+.asset-modal .asset-rent-table{border-collapse:collapse}
+.asset-modal .asset-rent-table thead{background:#fafafa;color:#606266}
+.asset-modal .asset-rent-table thead th{background:#fafafa;color:#606266;font-weight:500;border-top:0;border-bottom:1px solid #ebeef5;padding:8px 8px;white-space:normal;line-height:1.3}
+.asset-modal .asset-rent-table td{padding:7px 8px;color:#333;border-bottom:1px solid #f2f4f7}
+.asset-modal .asset-rent-table th,.asset-modal .asset-rent-table td{text-align:center}
+.asset-modal .asset-rent-table input{text-align:center}
+.asset-modal .asset-rent-table tbody tr:nth-child(even){background:#fff}
+.asset-modal .asset-rent-table tbody tr:hover{background:#fafbfd}
+.asset-modal .asset-rent-table tbody tr:last-child td{border-bottom:0}
+.asset-modal .asset-rent-table input.form-control-sm-custom{padding:5px 8px;font-size:12.5px;border-radius:6px}
+.asset-modal .asset-rent-table td:last-child .btn-sm-custom{padding:5px 8px}
+.asset-modal .asset-rent-summary{border-top:1px solid #ebeef5;padding-top:8px;margin-top:8px;color:#606266}
+.asset-modal .asset-rent-summary b{color:#333;font-weight:600}
+/* 租金收取明细 与 管理部门 两个显示区之间加大间距 */
+.asset-modal .asset-gap-lg{margin:28px 0 12px}
+/* 两个合同编辑弹窗位置统一：距顶固定间距（顶部对齐），高度随内容变化只影响底边；
+   其余弹窗（用户/部门/导入预览等）仍保持垂直居中，不受影响 */
+.modal-overlay.contract-edit{align-items:flex-start}
+.modal-overlay.contract-edit>.modal-content{margin-top:5vh;max-width:1000px}
 </style>
 </head>
 <body>
@@ -248,7 +321,7 @@ body{background:#F0F4FA;min-height:100vh}
         </button>
       </div>
     </div>
-    <div class="login-copyright">© 2021–2026 湘潭市机关事务管理局 版权所有｜系统版本 V1.1</div>
+    <div class="login-copyright">© 2021–2026 湘潭市机关事务管理局 版权所有｜系统版本 V1.2</div>
   </div>
 
   <div v-else class="app-layout">
@@ -267,51 +340,75 @@ body{background:#F0F4FA;min-height:100vh}
       <button class="sidebar-toggle" @click="sidebarCollapsed=!sidebarCollapsed">
         <i class="bi" :class="sidebarCollapsed?'bi-chevron-right':'bi-chevron-left'"></i>
       </button>
-      <div class="menu-item" :class="{active:currentView==='home'}" @click="switchView('home')"><i class="bi bi-house-door"></i><span>首页</span> <span class="menu-badge" v-if="store.dashboard.expiring_contracts>0" title="已/将到期合同数">{{ store.dashboard.expiring_contracts }}</span><span class="menu-badge" v-if="store.dashboard.pending_project_count>0" title="待支付项目数">{{ store.dashboard.pending_project_count }}</span></div>
-      <div class="menu-item" :class="{active:currentView==='contracts'}" @click="switchView('contracts')"><i class="bi bi-file-text"></i><span>合同台账</span></div>
+      <div class="menu-item" :class="{active:currentView==='home'}" @click="switchView('home')"><i class="bi bi-house-door"></i><span>首页</span></div>
+      <div class="menu-item" :class="{active:currentView==='contracts'}" @click="switchView('contracts')"><i class="bi bi-file-text"></i><span>项目合同</span></div>
+      <div class="menu-item" :class="{active:currentView==='assets'}" @click="switchView('assets')"><i class="bi bi-briefcase"></i><span>资产合同</span></div>
       <div class="menu-item" :class="{active:currentView==='stats'}" @click="switchView('stats')"><i class="bi bi-bar-chart"></i><span>查询统计</span></div>
       <div class="menu-item" :class="{active:currentView==='users'}" @click="switchView('users')"><i class="bi bi-people"></i><span>用户管理</span></div>
       <div class="menu-item" v-if="store.user.role==='管理员'" :class="{active:currentView==='depts'}" @click="switchView('depts')"><i class="bi bi-building"></i><span>部门管理</span></div>
       <div class="menu-item" :class="{active:currentView==='logs'}" @click="switchView('logs')"><i class="bi bi-clock-history"></i><span>日志审计</span></div>
+      <div class="menu-item" :class="{active:currentView==='sms'}" @click="switchView('sms')"><i class="bi bi-chat-dots"></i><span>短信记录</span></div>
       <div class="menu-item" v-if="store.user.role==='管理员'" :class="{active:currentView==='settings'}" @click="switchView('settings')"><i class="bi bi-gear"></i><span>系统设置</span></div>
     </div>
     <div class="main-content" :class="{expanded:sidebarCollapsed}">
       <transition name="page" mode="out-in">
       <div v-if="currentView==='home'" key="home">
         <div class="row g-3 mb-4">
-          <div class="col"><div class="stat-card"><div class="stat-icon blue"><i class="bi bi-files"></i></div><div class="stat-info"><h3>{{ store.dashboard.total_contracts }}</h3><p>总合同数（个）</p></div></div></div>
-          <div class="col"><div class="stat-card"><div class="stat-icon green"><i class="bi bi-currency-yen"></i></div><div class="stat-info"><h3>{{ totalAmountDisplay }}</h3><p>总合同额（万元）</p></div></div></div>
-          <div class="col"><div class="stat-card"><div class="stat-icon orange"><i class="bi bi-exclamation-triangle"></i></div><div class="stat-info"><h3>{{ store.dashboard.expiring_contracts }}</h3><p>已/将到期合同数（个）</p></div></div></div>
-          <div class="col"><div class="stat-card"><div class="stat-icon purple"><i class="bi bi-cash-coin"></i></div><div class="stat-info"><h3>{{ store.dashboard.pending_project_count }}</h3><p>待支付项目数（个）</p></div></div></div>
-          <div class="col"><div class="stat-card"><div class="stat-icon red"><i class="bi bi-currency-dollar"></i></div><div class="stat-info"><h3>{{ unpaidAmountDisplay }}</h3><p>待支付总金额（万元）</p></div></div></div>
+          <div class="col"><div class="stat-card"><div class="stat-icon"><i class="bi bi-files"></i></div><div class="stat-info" @mouseenter="showCountTip" @mouseleave="hideCountTip"><div class="stat-figure"><span class="stat-value">{{ store.dashboard.total_contracts }}</span><span class="stat-unit">个</span></div><p class="stat-label-hint">总合同数<i class="bi bi-question-circle stat-hint"></i></p></div><div class="stat-tip" v-show="countTipOpen"><canvas ref="countTipChart" class="stat-tip-canvas" width="110" height="110"></canvas><div class="stat-tip-text">项目合同 {{ countBreakdown.project }} 个（占 {{ countBreakdown.projectPct }}%），资产合同 {{ countBreakdown.asset }} 个（占 {{ countBreakdown.assetPct }}%）</div></div></div></div>
+          <div class="col"><div class="stat-card"><div class="stat-icon"><i class="bi bi-currency-yen"></i></div><div class="stat-info" @mouseenter="showAmountTip" @mouseleave="hideAmountTip"><div class="stat-figure"><span class="stat-value">{{ totalAmountDisplay }}</span><span class="stat-unit">万元</span></div><p class="stat-label-hint">总合同额<i class="bi bi-question-circle stat-hint"></i></p></div><div class="stat-tip" v-show="amountTipOpen"><canvas ref="amountTipChart" class="stat-tip-canvas" width="110" height="110"></canvas><div class="stat-tip-text">项目合同额 {{ amountBreakdown.project }} 万元（占 {{ amountBreakdown.projectPct }}%），资产合同额 {{ amountBreakdown.asset }} 万元（占 {{ amountBreakdown.assetPct }}%）</div></div></div></div>
+          <div class="col"><div class="stat-card"><div class="stat-icon" :class="{warn:store.dashboard.expiring_contracts>0}"><i class="bi bi-exclamation-triangle"></i></div><div class="stat-info" @mouseenter="showExpiringTip" @mouseleave="hideExpiringTip"><div class="stat-figure"><span class="stat-value">{{ store.dashboard.expiring_contracts }}</span><span class="stat-unit">个</span></div><p class="stat-label-hint">已/将到期合同数<i class="bi bi-question-circle stat-hint"></i></p></div><div class="stat-tip" v-show="expiringTipOpen"><canvas ref="expiringTipChart" class="stat-tip-canvas" width="110" height="110"></canvas><div class="stat-tip-text">项目合同 {{ expiringBreakdown.project }} 个（占 {{ expiringBreakdown.projectPct }}%），资产合同 {{ expiringBreakdown.asset }} 个（占 {{ expiringBreakdown.assetPct }}%）</div></div></div></div>
+          <div class="col"><div class="stat-card"><div class="stat-icon" :class="{warn:store.dashboard.pending_total_count>0}"><i class="bi bi-receipt"></i></div><div class="stat-info" @mouseenter="showPendingCountTip" @mouseleave="hidePendingCountTip"><div class="stat-figure"><span class="stat-value">{{ store.dashboard.pending_total_count }}</span><span class="stat-unit">个</span></div><p class="stat-label-hint">待收/支合同数<i class="bi bi-question-circle stat-hint"></i></p></div><div class="stat-tip" v-show="pendingCountTipOpen"><canvas ref="pendingCountTipChart" class="stat-tip-canvas" width="110" height="110"></canvas><div class="stat-tip-text">待收合同数 {{ pendingCountBreakdown.receivable }} 个（占 {{ pendingCountBreakdown.receivablePct }}%），待支合同数 {{ pendingCountBreakdown.payable }} 个（占 {{ pendingCountBreakdown.payablePct }}%）</div></div></div></div>
+          <div class="col"><div class="stat-card"><div class="stat-icon"><i class="bi bi-cash-stack"></i></div><div class="stat-info" @mouseenter="showPendingAmountTip" @mouseleave="hidePendingAmountTip"><div class="stat-figure"><span class="stat-value">{{ pendingTotalAmountDisplay }}</span><span class="stat-unit">万元</span></div><p class="stat-label-hint">待收/支总金额<i class="bi bi-question-circle stat-hint"></i></p></div><div class="stat-tip" v-show="pendingAmountTipOpen"><canvas ref="pendingAmountTipChart" class="stat-tip-canvas" width="110" height="110"></canvas><div class="stat-tip-text">待收金额 {{ fmtMoney(pendingAmountBreakdown.receivable) }} 万元（占 {{ pendingAmountBreakdown.receivablePct }}%），待支金额 {{ fmtMoney(pendingAmountBreakdown.payable) }} 万元（占 {{ pendingAmountBreakdown.payablePct }}%）</div></div></div></div>
         </div>
         <div class="white-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px"><h5 style="color:#0A2E5C;font-weight:700;margin:0"><i class="bi bi-bell me-2"></i>合同到期提醒</h5><a v-if="store.reminders.length > 3" href="javascript:;" style="color:#1E90FF;font-weight:600;text-decoration:none;font-size:14px;white-space:nowrap" @click="reminderLimit = reminderLimit >= store.reminders.length ? 3 : store.reminders.length"><i :class="reminderLimit >= store.reminders.length ? 'bi bi-arrow-up-circle me-1' : 'bi bi-arrow-right-circle me-1'"></i>{{ reminderLimit >= store.reminders.length ? '折叠' : '更多' }}</a></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px"><h5 class="module-title"><i class="bi bi-bell"></i>合同到期提醒</h5><a v-if="store.reminders.length > 3" href="javascript:;" class="more-link" @click="reminderLimit = reminderLimit >= store.reminders.length ? 3 : store.reminders.length"><i :class="reminderLimit >= store.reminders.length ? 'bi bi-arrow-up-circle' : 'bi bi-arrow-right-circle'"></i>{{ reminderLimit >= store.reminders.length ? '折叠' : '更多' }}</a></div>
           <div v-if="store.reminders.length===0" class="empty-state"><i class="bi bi-emoji-smile" style="font-size:56px;color:#4CAF50"></i><p>恭喜，暂无到期合同</p></div>
           <div v-else>
             <div class="reminder-item" v-for="r in store.reminders.slice(0, reminderLimit)" :key="r.id" v-show="!ignoredReminders[r.id]">
-              <div class="ri-info">
-                <span><strong>编号：</strong>{{ r.number }}</span><span><strong>项目：</strong>{{ r.name }}</span>
-                <span><strong>下次招采：</strong>{{ r.next_bid_date }}<span class="remind-hint"><strong>{{ r.remaining_days>0?'将于：':'已过期：' }}</strong><span class="remaining-tag" style="margin-right:2px" :class="r.remaining_days<=0?'danger':(r.remaining_days<=15?'warning':'safe')">{{ r.remaining_days<=0?(-r.remaining_days)+'天':r.remaining_days+'天' }}</span><strong v-if="r.remaining_days>0">后到期</strong></span></span><span><strong>经办人：</strong>{{ r.handler }}</span>
-                <span><strong>部门：</strong>{{ r.department }}</span>
+              <span class="ri-no">{{ r.number }}</span>
+              <div class="ri-body">
+                <div class="ri-head">
+                  <a href="#" class="ri-title" :title="r.name" @click.prevent="openContractFromReminder(r)">{{ r.name }}</a>
+                  <span class="badge-status" :class="r.remaining_days<=0?'is-danger':(r.remaining_days<=15?'is-warning':'is-ok')">{{ r.remaining_days<=0?('已过期'+(-r.remaining_days)+'天'):(r.remaining_days+'天后到期') }}</span>
+                </div>
+                <div class="ri-meta">
+                  <span>{{ r.next_label || '下次招采' }} {{ r.next_bid_date || '-' }}</span><span class="ri-sep">·</span>
+                  <span :title="r.handler">{{ r.handler || '-' }}</span><span class="ri-sep">·</span>
+                  <span :title="r.department">{{ r.department || '-' }}</span>
+                </div>
               </div>
               <div class="ri-actions">
-                <button class="btn-outline-custom btn-sm-custom" @click="ignoreReminder(r.id)">忽略</button>
-                <button class="btn-danger-custom btn-sm-custom" @click="permanentClose(r)">永久关闭</button>
+                <button class="btn-ignore" @click="ignoreReminder(r.id)">忽略</button>
+                <button class="btn-remind-close" @click="permanentClose(r)">永久关闭</button>
               </div>
             </div>
           </div>
         </div>
         <div class="white-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px"><h5 style="color:#0A2E5C;font-weight:700;margin:0"><i class="bi bi-currency-dollar me-2"></i>待支付提醒<small class="ms-2" style="font-weight:400;font-size:13px;color:#8A94A6">待支付项目共 <strong>{{ store.pendingPayments.length }}</strong> 个</small></h5><a v-if="store.pendingPayments.length > 2" href="javascript:;" style="color:#1E90FF;font-weight:600;text-decoration:none;font-size:14px;white-space:nowrap" @click="pendingLimit = pendingLimit >= store.pendingPayments.length ? 2 : store.pendingPayments.length"><i :class="pendingLimit >= store.pendingPayments.length ? 'bi bi-arrow-up-circle me-1' : 'bi bi-arrow-right-circle me-1'"></i>{{ pendingLimit >= store.pendingPayments.length ? '折叠' : '更多' }}</a></div>
-          <div v-if="store.pendingPayments.length===0" class="empty-state"><i class="bi bi-emoji-smile" style="font-size:56px;color:#4CAF50"></i><p>恭喜，暂无待支付合同</p></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px"><h5 class="module-title"><i class="bi bi-currency-dollar"></i>待收/支提醒</h5><a v-if="store.pendingPayments.length > 2" href="javascript:;" class="more-link" @click="pendingLimit = pendingLimit >= store.pendingPayments.length ? 2 : store.pendingPayments.length"><i :class="pendingLimit >= store.pendingPayments.length ? 'bi bi-arrow-up-circle' : 'bi bi-arrow-right-circle'"></i>{{ pendingLimit >= store.pendingPayments.length ? '折叠' : '更多' }}</a></div>
+          <div v-if="store.pendingPayments.length===0" class="empty-state"><i class="bi bi-emoji-smile" style="font-size:56px;color:#4CAF50"></i><p>恭喜，暂无待收/支合同</p></div>
           <div v-else>
             <div class="reminder-item" v-for="p in store.pendingPayments.slice(0, pendingLimit)" :key="p.id">
-              <div class="ri-info">
-                <span><strong>合同编号：</strong>{{ p.number }}</span><span><strong>项目名称：</strong>{{ p.name }}</span>
-                <span><strong>所属部门：</strong>{{ p.department }}</span><span><strong>结算金额：</strong>{{ fmtMoney(p.settled_amount) }}万元</span>
-                <span><strong>已支付：</strong>{{ fmtMoney(p.paid_amount) }}万元</span><span><strong>未支付/差额：</strong>{{ fmtMoney(p.pending_amount) }}万元</span>
-                <span><strong>经办人：</strong>{{ p.handler }}</span><span><strong>采购时间：</strong>{{ p.procurement_date }}</span>
+              <span class="ri-no">{{ p.number }}</span>
+              <div class="ri-body">
+                <div class="ri-head">
+                  <a href="#" class="ri-title" :title="p.name" @click.prevent="openContractFromReminder(p)">{{ p.name }}</a>
+                  <span class="badge-status is-danger">{{ p.kind==='receivable' ? '待收/差额 ' : '待支/差额 ' }}{{ fmtMoney(p.pending_amount) }} 万元</span>
+                </div>
+                <div class="ri-meta" v-if="p.kind==='receivable'">
+                  <span :title="p.department">{{ p.department || '-' }}</span><span class="ri-sep">·</span>
+                  <span>应缴 {{ fmtMoney(p.due_amount) }} 万元</span><span class="ri-sep">·</span>
+                  <span>已收 {{ fmtMoney(p.received_amount) }} 万元</span><span class="ri-sep">·</span>
+                  <span :title="p.handler">{{ p.handler || '-' }}</span><span class="ri-sep">·</span>
+                  <span>下次出租 {{ p.next_lease_date || '-' }}</span>
+                </div>
+                <div class="ri-meta" v-else>
+                  <span :title="p.department">{{ p.department || '-' }}</span><span class="ri-sep">·</span>
+                  <span>结算 {{ fmtMoney(p.settled_amount) }} 万元</span><span class="ri-sep">·</span>
+                  <span>已支付 {{ fmtMoney(p.paid_amount) }} 万元</span><span class="ri-sep">·</span>
+                  <span :title="p.handler">{{ p.handler || '-' }}</span><span class="ri-sep">·</span>
+                  <span>采购 {{ p.procurement_date || '-' }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -320,7 +417,7 @@ body{background:#F0F4FA;min-height:100vh}
       <div v-if="currentView==='contracts'" key="contracts">
         <div class="white-card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-            <h5 style="color:#0A2E5C;font-weight:700;margin:0"><i class="bi bi-file-text me-2"></i>合同台账</h5>
+            <h5 style="color:#0A2E5C;font-weight:700;margin:0"><i class="bi bi-file-text me-2"></i>项目合同台账</h5>
             <div class="btn-toolbar">
               <button v-if="canEdit" class="btn-primary-custom btn-sm-custom" @click="openContractModal(null)"><i class="bi bi-plus-lg me-1"></i>新增合同</button>
               <button class="btn-outline-custom btn-sm-custom" @click="exportContracts"><i class="bi bi-download me-1"></i>导出</button>
@@ -333,7 +430,7 @@ body{background:#F0F4FA;min-height:100vh}
           <div class="search-toggle" @click="searchOpen=!searchOpen"><i class="bi" :class="searchOpen?'bi-chevron-up':'bi-chevron-down'"></i> 搜索筛选条件</div>
           <div class="search-panel" :class="{open:searchOpen}">
             <div class="row g-2 mt-2">
-              <div class="col-md-2"><label class="form-label-sm">单位名称</label><select class="form-select-sm-custom" v-model="search.unit"><option value="">全部</option><option v-for="u in units" :key="u" :value="u">{{ u }}</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">单位名称</label><select class="form-select-sm-custom" v-model="search.unit"><option value="">全部</option><option v-for="u in units" :key="u" :value="u">{{ deptShortName(u) }}</option></select></div>
               <div class="col-md-2"><label class="form-label-sm">科室名称</label><select class="form-select-sm-custom" v-model="search.dept"><option value="">全部</option><option v-for="d in filteredDepts" :key="d" :value="d">{{ d }}</option></select></div>
               <div class="col-md-2"><label class="form-label-sm">经办人</label><input class="form-control-sm-custom" v-model="search.person" placeholder="模糊"></div>
               <div class="col-md-2"><label class="form-label-sm">项目名称</label><input class="form-control-sm-custom" v-model="search.name" placeholder="模糊"></div>
@@ -357,16 +454,16 @@ body{background:#F0F4FA;min-height:100vh}
           <table class="table-custom contracts-table">
             <thead><tr><th>编号</th><th>项目名称</th><th>项目分类</th><th>所属部门</th><th>合同金额(万元)</th><th>经办人</th><th>采购时间</th><th>中标单位</th><th>是否结算</th><th>附件</th><th style="width:165px">操作</th></tr></thead>
             <tbody>
-              <tr v-if="contractItems.length===0"><td colspan="11" style="text-align:center;padding:30px;color:#999"><div class="empty-state-icon"><i class="bi bi-inbox"></i></div>暂无合同数据</td></tr>
+              <tr v-if="contractItems.length===0"><td colspan="11" style="text-align:center;padding:30px;color:var(--text-secondary)"><div class="empty-state-icon"><i class="bi bi-inbox"></i></div>暂无合同数据</td></tr>
               <tr v-for="c in contractItems" :key="c.id" :class="{'row-archived': c.archived}">
                 <td>{{ c.number }}</td><td><a href="#" @click.prevent="openContractModal(c)" style="color:#1E90FF;text-decoration:none">{{ c.name }}</a></td>
-                <td>{{ c.category }}</td><td>{{ c.department }}</td>
+                <td>{{ c.category }}</td><td>{{ deptShortName(c.department) || '-' }}</td>
                 <td>{{ c.amount!==null&&c.amount!==undefined?Number(c.amount).toFixed(2):'' }}</td>
                 <td>{{ c.handler }}</td><td>{{ c.procurement_date }}</td>
                 <td>{{ c.winner || '-' }}</td><td>{{ c.is_settled || '-' }}</td>
                 
-                <td style="min-width:140px"><template v-if="c.attachments && c.attachments.length"><span v-for="(a, ai) in c.attachments" :key="a.id"><a :href="'/api/attachments/' + a.id + '/download'" :title="a.type_label" style="color:#1E90FF;text-decoration:none"><i class="bi bi-paperclip me-1"></i>{{ a.display_name }}</a>{{ ai < c.attachments.length-1 ? '、' : '' }}</span></template><span v-else style="color:#bbb">-</span></td>
-                <td><template v-if="!c.archived"><button v-if="canEdit" class="btn-primary-custom btn-sm-custom me-1" @click="openContractModal(c)"><i class="bi bi-pencil"></i></button><button v-if="canEdit" class="btn-danger-custom btn-sm-custom me-1" @click="confirmDelete(c)"><i class="bi bi-trash"></i></button><button v-if="canArchive(c)" class="btn-archive-custom btn-sm-custom" style="width:36px;height:28px;padding:0;line-height:26px;vertical-align:middle" title="归档" @click="confirmArchive(c)">归档</button></template><span v-else class="readonly-tag"><i class="bi bi-lock me-1"></i>已归档，仅浏览</span></td>
+                <td style="min-width:140px"><template v-if="c.attachments && c.attachments.length"><span v-for="(a, ai) in c.attachments" :key="a.id"><a :href="'/api/attachments/' + a.id + '/download'" :title="a.type_label" style="color:#1E90FF;text-decoration:none"><i class="bi bi-paperclip me-1"></i>{{ a.display_name }}</a>{{ ai < c.attachments.length-1 ? '、' : '' }}</span></template><span v-else style="color:var(--text-tertiary)">-</span></td>
+                <td><template v-if="!c.archived"><button v-if="canEdit" class="btn-primary-custom btn-sm-custom me-1" @click="openContractModal(c)"><i class="bi bi-pencil"></i></button><button v-if="canEdit" class="btn-danger-custom btn-sm-custom me-1" @click="confirmDelete(c)"><i class="bi bi-trash"></i></button><button v-if="canArchive(c)" class="btn-archive-custom btn-sm-custom" style="width:36px;height:28px;padding:0;line-height:26px;vertical-align:middle" title="归档" @click="confirmArchive(c)">归档</button></template><span v-else class="badge-status is-info"><i class="bi bi-lock"></i>已归档，仅浏览</span></td>
               </tr>
             </tbody>
           </table>
@@ -380,13 +477,77 @@ body{background:#F0F4FA;min-height:100vh}
           </div>
         </div>
       </div>
+      <div v-if="currentView==='assets'" key="assets">
+        <div class="white-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+            <h5 style="color:#0A2E5C;font-weight:700;margin:0"><i class="bi bi-briefcase me-2"></i>资产合同台账</h5>
+            <div class="btn-toolbar">
+              <button v-if="canEditAsset" class="btn-primary-custom btn-sm-custom" @click="openAssetModal(null)"><i class="bi bi-plus-lg me-1"></i>新增合同</button>
+              <button class="btn-outline-custom btn-sm-custom" @click="exportAssets"><i class="bi bi-download me-1"></i>导出</button>
+              <button v-if="store.user.role==='管理员'" class="btn-outline-custom btn-sm-custom" @click="downloadAssetTemplate"><i class="bi bi-file-earmark-arrow-down me-1"></i>模板</button>
+              <button v-if="store.user.role==='管理员'" class="btn-outline-custom btn-sm-custom" @click="assetImportFileInput.click()"><i class="bi bi-upload me-1"></i>导入</button>
+              <input ref="assetImportFileInput" type="file" accept=".xlsx,.xlsm" style="display:none" @change="importAssets">
+              <button class="btn-outline-custom btn-sm-custom" @click="loadAssets"><i class="bi bi-arrow-clockwise me-1"></i>刷新</button>
+            </div>
+          </div>
+          <div class="search-toggle" @click="assetSearchOpen=!assetSearchOpen"><i class="bi" :class="assetSearchOpen?'bi-chevron-up':'bi-chevron-down'"></i> 搜索筛选条件</div>
+          <div class="search-panel" :class="{open:assetSearchOpen}">
+            <div class="row g-2 mt-2">
+              <div class="col-md-2"><label class="form-label-sm">位置</label><select class="form-select-sm-custom" v-model="assetSearch.place"><option value="">全部</option><option v-for="p in assetPlaces" :key="p" :value="p">{{ p }}</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">资产名称</label><input class="form-control-sm-custom" v-model="assetSearch.asset_name" placeholder="模糊"></div>
+              <div class="col-md-2"><label class="form-label-sm">承租人</label><input class="form-control-sm-custom" v-model="assetSearch.tenant" placeholder="模糊"></div>
+              <div class="col-md-2"><label class="form-label-sm">管理部门</label><select class="form-select-sm-custom" v-model="assetSearch.dept"><option value="">全部</option><option v-for="d in deptOptions" :key="d" :value="d">{{ deptShortName(d) }}</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">责任人</label><input class="form-control-sm-custom" v-model="assetSearch.person" placeholder="模糊"></div>
+              <div class="col-md-2"><label class="form-label-sm">序号</label><input class="form-control-sm-custom" v-model="assetSearch.seq" type="number" placeholder="精确"></div>
+              <div class="col-md-2"><label class="form-label-sm">租期结束日(起)</label><input class="form-control-sm-custom" v-model="assetSearch.lease_end_start" type="date"></div>
+              <div class="col-md-2"><label class="form-label-sm">租期结束日(止)</label><input class="form-control-sm-custom" v-model="assetSearch.lease_end_end" type="date"></div>
+              <div class="col-md-2"><label class="form-label-sm">归档状态</label><select class="form-select-sm-custom" v-model="assetSearch.archived"><option value="">全部</option><option value="否">未归档</option><option value="是">已归档</option></select></div>
+              <div class="col-md-2 d-flex align-items-end"><button class="btn-primary-custom btn-sm-custom btn-height-match" style="padding-left:8px;padding-right:8px" @click="searchAssets"><i class="bi bi-search me-1"></i>搜索</button><button class="btn-outline-custom btn-sm-custom btn-height-match ms-2" style="padding-left:8px;padding-right:8px" @click="resetAssetSearch"><i class="bi bi-x-circle me-1"></i>重置</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="white-card" style="padding:0;overflow:auto">
+          <table class="table-custom contracts-table asset-table">
+            <colgroup><col style="width:5%"><col style="width:16%"><col style="width:8%"><col style="width:9%"><col style="width:8%"><col style="width:7%"><col style="width:9%"><col style="width:8%"><col style="width:9%"><col style="width:8%"><col style="width:13%"></colgroup>
+            <thead><tr><th>合同编号</th><th>资产名称</th><th>位置</th><th>承租人</th><th>联系电话</th><th>面积(㎡)</th><th>租期</th><th>年租金(元)</th><th>已缴租金合计(元)</th><th>责任人</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr v-if="assetItems.length===0"><td colspan="11" style="text-align:center;padding:30px;color:var(--text-secondary)"><div class="empty-state-icon"><i class="bi bi-inbox"></i></div>暂无资产合同数据</td></tr>
+              <tr v-for="a in assetItems" :key="a.id" :class="{'row-archived': a.archived}">
+                <td>{{ a._row }}</td>
+                <td><a href="#" @click.prevent="openAssetModal(a)" style="color:#1E90FF;text-decoration:none">{{ a.asset_name }}</a></td>
+                <td>{{ a.place }}</td>
+                <td>{{ a.tenant }}</td>
+                <td>{{ a.phone || '-' }}</td>
+                <td>{{ a.area!==''&&a.area!==null&&a.area!==undefined?Number(a.area).toFixed(2):'' }}</td>
+                <td>{{ a.lease_start || '' }}{{ a.lease_start && a.lease_end ? ' 至 ' : '' }}{{ a.lease_end || '' }}</td>
+                <td>{{ assetMoney(a.annual_rent) }}</td>
+                <td>{{ assetMoney(a.paid_total) }}</td>
+                <td>{{ a.person || '-' }}</td>
+                <td><template v-if="!a.archived"><span v-if="!canEditAsset" style="color:var(--text-tertiary)">-</span><button v-if="canEditAsset" class="btn-primary-custom btn-sm-custom me-1" @click="openAssetModal(a)"><i class="bi bi-pencil"></i></button><button v-if="canEditAsset" class="btn-danger-custom btn-sm-custom me-1" @click="confirmDeleteAsset(a)"><i class="bi bi-trash"></i></button><button v-if="canArchiveAsset(a)" class="btn-archive-custom btn-sm-custom" style="width:36px;height:28px;padding:0;line-height:26px;vertical-align:middle" title="归档" @click="confirmArchiveAsset(a)">归档</button></template><span v-else class="badge-status is-info"><i class="bi bi-lock"></i>已归档，仅浏览</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pagination-bar" style="padding:12px 16px">
+            <div class="page-info"><span>共 {{ assetTotal }} 条</span><select v-model="assetPageSize" @change="assetPage=1;loadAssets()"><option value="20">20条/页</option><option value="50">50条/页</option></select></div>
+            <div class="page-btns">
+              <button :disabled="assetPage<=1" @click="assetPage--;loadAssets()">上一页</button>
+              <template v-for="p in assetPages" :key="p"><button v-if="p==='...'" disabled>...</button><button v-else :class="{active:p===assetPage}" @click="assetPage=p;loadAssets()">{{ p }}</button></template>
+              <button :disabled="assetPage>=assetMaxPage" @click="assetPage++;loadAssets()">下一页</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div v-if="currentView==='stats'" key="stats">
         <div class="white-card">
-          <h5 style="color:#0A2E5C;font-weight:700;margin-bottom:16px"><i class="bi bi-bar-chart me-2"></i>查询统计</h5>
+          <div class="stats-tabs" role="tablist">
+            <button type="button" class="stats-tab" role="tab" :aria-selected="statsTab==='project'" :class="{active:statsTab==='project'}" @click="selectStatsTab('project')"><i class="bi bi-bar-chart"></i>项目合同查询统计</button>
+            <button type="button" class="stats-tab" role="tab" :aria-selected="statsTab==='asset'" :class="{active:statsTab==='asset'}" @click="selectStatsTab('asset')"><i class="bi bi-clipboard-data"></i>资产合同查询统计</button>
+          </div>
+          <template v-if="statsTab==='project'">
           <div class="stats-filter-panel">
             <div class="row g-2 align-items-end">
               <div class="col-md-2"><label class="form-label-sm">统计维度</label><select class="form-select-sm-custom" v-model="statsType" @change="loadStats"><option value="by_dept">按部门</option><option value="by_time">按时间</option><option value="by_person">按经办人</option><option value="by_category">按项目分类</option><option value="by_fund_source">按资金来源</option><option value="pay_dept">按部门支付情况</option><option value="pay_project">按项目支付情况</option><option value="budget_dept">按部门预算执行情况</option><option value="budget_project">按项目预算执行情况</option></select></div>
-              <div class="col-md-2"><label class="form-label-sm">单位名称</label><select class="form-select-sm-custom" v-model="statsUnit"><option value="">全部</option><option v-for="u in units" :key="u" :value="u">{{ u }}</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">单位名称</label><select class="form-select-sm-custom" v-model="statsUnit"><option value="">全部</option><option v-for="u in units" :key="u" :value="u">{{ deptShortName(u) }}</option></select></div>
               <div class="col-md-2"><label class="form-label-sm">科室</label><select class="form-select-sm-custom" v-model="statsDept"><option value="">全部</option><option v-for="d in statsFilteredDepts" :key="d" :value="d">{{ d }}</option></select></div>
               <div class="col-md-2"><label class="form-label-sm">经办人</label><input class="form-control-sm-custom" v-model="statsPerson" placeholder="模糊"></div>
               <div class="col-md-2"><label class="form-label-sm">采购时间(起)</label><input class="form-control-sm-custom" v-model="statsStartDate" type="date"></div>
@@ -398,16 +559,42 @@ body{background:#F0F4FA;min-height:100vh}
               <div class="col-md-2"><label class="form-label-sm">图表2类型</label><select class="form-select-sm-custom" v-model="chartType2" @change="renderCharts"><option value="bar">柱状图</option><option value="pie">饼图</option><option value="line">折线图</option><option value="doughnut">环形图</option></select></div>
               <div class="col-md-2"><button class="btn-primary-custom btn-sm-custom btn-height-match w-100" @click="loadStats"><i class="bi bi-search me-1"></i>统计</button></div>
               <div class="col-md-2"><button class="btn-outline-custom btn-sm-custom btn-height-match w-100" @click="resetStats"><i class="bi bi-arrow-counterclockwise me-1"></i>重置</button></div>
-              <div class="col-md-2" style="font-size:12px;color:#999;display:flex;align-items:flex-end;padding-bottom:8px"><i class="bi bi-info-circle me-1"></i>{{ statsHint }}</div>
+              <div class="col-md-2" style="font-size:12px;color:var(--text-secondary);display:flex;align-items:flex-end;padding-bottom:8px"><i class="bi bi-info-circle me-1"></i>{{ statsHint }}</div>
             </div>
           </div>
           <div class="stats-grid"><div class="chart-container"><canvas ref="statsChart1" v-if="statsData.length>0" :key="'c1-'+chartType+'-'+statsType"></canvas><div class="chart-empty" v-show="statsData.length===0"><i class="bi bi-pie-chart" style="font-size:40px;margin-bottom:8px"></i>请点击“统计”按钮查看图表</div></div><div class="chart-container"><canvas ref="statsChart2" v-if="statsData.length>0" :key="'c2-'+chartType2+'-'+statsType"></canvas><div class="chart-empty" v-show="statsData.length===0"><i class="bi bi-bar-chart" style="font-size:40px;margin-bottom:8px"></i>第二个图表将在加载数据后显示</div></div></div>
           <div style="overflow:auto;margin-top:8px">
             <table class="table-custom"><thead><tr><th v-for="h in statsTableHeaders" :key="h">{{ h }}</th></tr></thead>
-            <tbody><tr v-if="statsData.length===0"><td :colspan="statsTableHeaders.length" style="text-align:center;padding:30px;color:#999"><div class="empty-state-icon"><i class="bi bi-bar-chart"></i></div>请选择统计维度查看数据</td></tr>
-            <tr v-for="(r,ri) in statsData" :key="ri"><td v-for="h in statsTableHeaders" :key="h">{{ r[h] }}</td></tr></tbody></table>
+            <tbody><tr v-if="statsData.length===0"><td :colspan="statsTableHeaders.length" style="text-align:center;padding:30px;color:var(--text-secondary)"><div class="empty-state-icon"><i class="bi bi-bar-chart"></i></div>请选择统计维度查看数据</td></tr>
+              <tr v-for="(r,ri) in statsData" :key="ri"><td v-for="h in statsTableHeaders" :key="h">{{ statsCell(h, r[h]) }}</td></tr></tbody></table>
           </div>
           <div style="margin-top:12px"><button class="btn-outline-custom btn-sm-custom" @click="exportStats"><i class="bi bi-download me-1"></i>导出统计结果</button></div>
+          </template>
+          <template v-else>
+            <div class="stats-filter-panel">
+              <div class="row g-2 align-items-end">
+                <div class="col-md-2"><label class="form-label-sm">统计维度</label><select class="form-select-sm-custom" v-model="assetStatsType" @change="loadAssetStats"><option value="by_dept">按部门</option><option value="by_time">按时间</option><option value="by_person">按经办人</option></select></div>
+                <div class="col-md-2"><label class="form-label-sm">单位名称</label><select class="form-select-sm-custom" v-model="assetStatsUnit"><option value="">全部</option><option v-for="u in units" :key="u" :value="u">{{ deptShortName(u) }}</option></select></div>
+                <div class="col-md-2"><label class="form-label-sm">科室</label><select class="form-select-sm-custom" v-model="assetStatsDept"><option value="">全部</option><option v-for="d in assetStatsFilteredDepts" :key="d" :value="d">{{ d }}</option></select></div>
+                <div class="col-md-2"><label class="form-label-sm">经办人</label><input class="form-control-sm-custom" v-model="assetStatsPerson" placeholder="模糊"></div>
+                <div class="col-md-2"><label class="form-label-sm">出租时间(起)</label><input class="form-control-sm-custom" v-model="assetStatsStartDate" type="date"></div>
+                <div class="col-md-2"><label class="form-label-sm">出租时间(止)</label><input class="form-control-sm-custom" v-model="assetStatsEndDate" type="date"></div>
+              </div>
+              <div class="row g-2 align-items-end">
+                <div class="col-md-2"><label class="form-label-sm">图表1类型</label><select class="form-select-sm-custom" v-model="assetChartType" @change="renderAssetCharts"><option value="bar">柱状图</option><option value="pie">饼图</option><option value="line">折线图</option><option value="doughnut">环形图</option></select></div>
+                <div class="col-md-2"><label class="form-label-sm">图表2类型</label><select class="form-select-sm-custom" v-model="assetChartType2" @change="renderAssetCharts"><option value="bar">柱状图</option><option value="pie">饼图</option><option value="line">折线图</option><option value="doughnut">环形图</option></select></div>
+                <div class="col-md-2"><button class="btn-primary-custom btn-sm-custom btn-height-match w-100" @click="loadAssetStats"><i class="bi bi-search me-1"></i>统计</button></div>
+                <div class="col-md-2"><button class="btn-outline-custom btn-sm-custom btn-height-match w-100" @click="resetAssetStats"><i class="bi bi-arrow-counterclockwise me-1"></i>重置</button></div>
+              </div>
+            </div>
+            <div class="stats-grid"><div class="chart-container"><canvas ref="assetStatsChart1" v-if="assetStatsData.length>0" :key="'a1-'+assetChartType+'-'+assetStatsType"></canvas><div class="chart-empty" v-show="assetStatsData.length===0"><i class="bi bi-pie-chart" style="font-size:40px;margin-bottom:8px"></i>请点击“统计”按钮查看图表</div></div><div class="chart-container"><canvas ref="assetStatsChart2" v-if="assetStatsData.length>0" :key="'a2-'+assetChartType2+'-'+assetStatsType"></canvas><div class="chart-empty" v-show="assetStatsData.length===0"><i class="bi bi-bar-chart" style="font-size:40px;margin-bottom:8px"></i>第二个图表将在加载数据后显示</div></div></div>
+            <div style="overflow:auto;margin-top:8px">
+              <table class="table-custom"><thead><tr><th v-for="h in assetStatsTableHeaders" :key="h">{{ h }}</th></tr></thead>
+              <tbody><tr v-if="assetStatsData.length===0"><td :colspan="assetStatsTableHeaders.length" style="text-align:center;padding:30px;color:var(--text-secondary)"><div class="empty-state-icon"><i class="bi bi-bar-chart"></i></div>请选择统计维度查看数据</td></tr>
+                <tr v-for="(r,ri) in assetStatsData" :key="ri"><td v-for="h in assetStatsTableHeaders" :key="h">{{ statsCell(h, r[h]) }}</td></tr></tbody></table>
+            </div>
+            <div style="margin-top:12px"><button class="btn-outline-custom btn-sm-custom" @click="exportAssetStats"><i class="bi bi-download me-1"></i>导出统计结果</button></div>
+          </template>
         </div>
       </div>
       <div v-if="currentView==='users'" key="users">
@@ -422,7 +609,7 @@ body{background:#F0F4FA;min-height:100vh}
             <div class="row g-2 mt-2">
               <div class="col-md-2"><label class="form-label-sm">用户名</label><input class="form-control-sm-custom" v-model="userSearch.username" placeholder="模糊"></div>
               <div class="col-md-2"><label class="form-label-sm">姓名</label><input class="form-control-sm-custom" v-model="userSearch.name" placeholder="模糊"></div>
-              <div class="col-md-2"><label class="form-label-sm">所属部门</label><select class="form-select-sm-custom" v-model="userSearch.department"><option value="">全部</option><option v-for="d in allDepts" :key="d.display" :value="d.display">{{ d.display }}</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">所属部门</label><select class="form-select-sm-custom" v-model="userSearch.department"><option value="">全部</option><option v-for="d in allDepts" :key="d.display" :value="d.display">{{ deptShortName(d.display) }}</option></select></div>
               <div class="col-md-2"><label class="form-label-sm">角色</label><select class="form-select-sm-custom" v-model="userSearch.role"><option value="">全部</option><option>管理员</option><option>普通用户</option><option>查询用户</option></select></div>
               <div class="col-md-4 d-flex align-items-end"><button class="btn-primary-custom btn-sm-custom btn-height-match" @click="searchUsers"><i class="bi bi-search me-1"></i>查询</button><button class="btn-outline-custom btn-sm-custom btn-height-match ms-2" @click="resetUserSearch"><i class="bi bi-x-circle me-1"></i>重置</button></div>
             </div>
@@ -430,9 +617,9 @@ body{background:#F0F4FA;min-height:100vh}
         </div>
         <div class="white-card" style="padding:0;overflow:auto">
           <div style="overflow:auto"><table class="table-custom">
-            <thead><tr><th>用户名</th><th>姓名</th><th>所属部门</th><th>分管部门</th><th>角色</th><th style="width:200px">操作</th></tr></thead>
-            <tbody><tr v-if="users.length===0"><td colspan="6" style="text-align:center;padding:30px;color:#999"><div class="empty-state-icon"><i class="bi bi-people"></i></div>暂无用户</td></tr>
-            <tr v-for="u in pagedUsers" :key="u.username"><td>{{ u.username }}</td><td>{{ u.name }}</td><td>{{ u.department }}</td><td>{{ managedDisplay(u.managed_departments) }}</td><td>{{ u.role }}</td>
+            <thead><tr><th>用户名</th><th>姓名</th><th>电话</th><th>所属部门</th><th>分管部门</th><th>角色</th><th style="width:200px">操作</th></tr></thead>
+            <tbody><tr v-if="users.length===0"><td colspan="7" style="text-align:center;padding:30px;color:var(--text-secondary)"><div class="empty-state-icon"><i class="bi bi-people"></i></div>暂无用户</td></tr>
+            <tr v-for="u in pagedUsers" :key="u.username"><td>{{ u.username }}</td><td>{{ u.name }}</td><td>{{ u.phone || '-' }}</td><td>{{ deptShortName(u.department) || '-' }}</td><td>{{ managedDisplay(u.managed_departments) }}</td><td>{{ u.role }}</td>
             <td><button class="btn-primary-custom btn-sm-custom me-1" @click="openUserModal(u)"><i class="bi bi-pencil"></i></button><button class="btn-outline-custom btn-sm-custom me-1" @click="resetPassword(u)">重置密码</button><button class="btn-danger-custom btn-sm-custom" @click="confirmDeleteUser(u)"><i class="bi bi-trash"></i></button></td></tr>
                     </tbody></table></div>
           <div class="pagination-bar" style="padding:12px 16px">
@@ -452,15 +639,16 @@ body{background:#F0F4FA;min-height:100vh}
               <div class="row g-2">
                 <div class="col-md-6"><label class="form-label-sm">用户名</label><input class="form-control-sm-custom" v-model="userForm.username" :readonly="userEditIndex!==null" placeholder="登录账号"></div>
                 <div class="col-md-6"><label class="form-label-sm">姓名</label><input class="form-control-sm-custom" v-model="userForm.name" placeholder="真实姓名"></div>
-                <div class="col-md-6"><label class="form-label-sm">所属部门</label><select class="form-select-sm-custom" v-model="userForm.department"><option value="">请选择</option><option v-for="d in allDepts" :key="d.display" :value="d.display">{{ d.display }}</option></select></div>
+                <div class="col-md-6"><label class="form-label-sm">电话</label><input class="form-control-sm-custom" v-model="userForm.phone" maxlength="20" placeholder="选填，如 13800000000"></div>
+                <div class="col-md-6"><label class="form-label-sm">所属部门</label><select class="form-select-sm-custom" v-model="userForm.department"><option value="">请选择</option><option v-for="d in allDepts" :key="d.display" :value="d.display">{{ deptShortName(d.display) }}</option></select></div>
                 <div class="col-md-12" v-if="userForm.department && isLeadershipDept(userForm.department)">
-                  <label class="form-label-sm">分管部门 <span style="font-weight:400;color:#7a8aa5">（该用户为领导，请勾选其分管的部门范围）</span></label>
+                  <label class="form-label-sm">分管部门 <span style="font-weight:400;color:var(--text-secondary)">（该用户为领导，请勾选其分管的部门范围）</span></label>
                   <div class="manage-dept-box">
                     <label v-for="d in allDepts" :key="d.display" class="manage-dept-item">
                       <input type="checkbox" :value="d.display" v-model="userForm.managedDepartments">
                       <span>{{ d.display }}</span>
                     </label>
-                    <div v-if="allDepts.length===0" style="color:#999;padding:6px 0">暂无部门，请先在“部门管理”中添加</div>
+                    <div v-if="allDepts.length===0" style="color:var(--text-secondary);padding:6px 0">暂无部门，请先在“部门管理”中添加</div>
                   </div>
                 </div>
                 <div class="col-md-6"><label class="form-label-sm">角色</label><select class="form-select-sm-custom" v-model="userForm.role"><option value="普通用户">普通用户</option><option value="管理员">管理员</option><option value="查询用户">查询用户</option></select></div>
@@ -495,7 +683,7 @@ body{background:#F0F4FA;min-height:100vh}
             <div class="col-md-2"><button class="btn-primary-custom btn-sm-custom btn-height-match w-100" @click="addDepartment"><i class="bi bi-plus-lg me-1"></i>新增部门</button></div>
           </div>
           <div style="overflow:auto"><table class="table-custom" style="table-layout:fixed"><thead><tr><th style="width:calc((100% - 110px) * 4 / 7)">单位名称</th><th style="width:calc((100% - 110px) * 3 / 7)">部门名称</th><th style="width:110px;text-align:center">操作</th></tr></thead>
-            <tbody><tr v-if="allDepts.length===0"><td colspan="3" style="text-align:center;padding:30px;color:#999"><div class="empty-state-icon"><i class="bi bi-building"></i></div>暂无部门</td></tr>
+            <tbody><tr v-if="allDepts.length===0"><td colspan="3" style="text-align:center;padding:30px;color:var(--text-secondary)"><div class="empty-state-icon"><i class="bi bi-building"></i></div>暂无部门</td></tr>
             <tr v-for="(d,di) in pagedDepts" :key="di"><td>{{ d.unit }}</td><td>{{ d.dept }}</td><td style="text-align:center"><button class="btn-primary-custom btn-sm-custom me-1" @click="openDeptEdit(d)"><i class="bi bi-pencil"></i></button><button class="btn-danger-custom btn-sm-custom" @click="confirmDeleteDept(d)"><i class="bi bi-trash"></i></button></td></tr></tbody></table></div>
           <div class="pagination-bar" style="padding:12px 16px">
             <div class="page-info"><span>共 {{ deptsTotal }} 条</span><select v-model="deptsPageSize" @change="deptsPage=1"><option value="20">20条/页</option><option value="50">50条/页</option><option value="100">100条/页</option></select></div>
@@ -515,19 +703,143 @@ body{background:#F0F4FA;min-height:100vh}
                 <div class="col-md-6"><label class="form-label-sm">单位名称</label><input class="form-control-sm-custom" v-model="deptEditForm.unit" placeholder="单位名称"></div>
                 <div class="col-md-6"><label class="form-label-sm">部门名称</label><input class="form-control-sm-custom" v-model="deptEditForm.dept" placeholder="部门名称"></div>
               </div>
-              <div style="font-size:12px;color:#999;margin-top:8px">修改后，关联该部门的用户与合同将同步更新所属部门。</div>
+              <div style="font-size:12px;color:var(--text-secondary);margin-top:8px">修改后，关联该部门的用户与合同将同步更新所属部门。</div>
             </div>
             <div class="modal-footer"><button class="btn-outline-custom btn-sm-custom" @click="deptEditOpen=false">取消</button><button class="btn-primary-custom btn-sm-custom" @click="saveDept" :disabled="deptSaving"><span v-if="deptSaving">保存中...</span><span v-else>保存</span></button></div>
           </div>
         </div>
       </div>
       <div v-if="currentView==='settings' && store.user.role==='管理员'" key="settings">
-        <div class="white-card" style="max-width:500px">
-          <h5 style="color:#0A2E5C;font-weight:700;margin-bottom:20px"><i class="bi bi-gear me-2"></i>系统设置</h5>
-          <div class="mb-3"><label class="form-label-sm" style="margin-right:12px">全局默认提醒提前天数</label><input class="form-control-sm-custom" v-model.number="settingsDays" type="number" min="1" max="365" style="max-width:200px"><div style="font-size:12px;color:#999;margin-top:4px">范围：1-365天，默认60天</div></div>
-          <div class="mb-3"><label class="form-label-sm" style="margin-right:12px">全局默认日志保留天数</label><input class="form-control-sm-custom" v-model.number="settingsLogDays" type="number" min="1" max="3650" style="max-width:200px"><div style="font-size:12px;color:#999;margin-top:4px">范围：1-3650天，默认90天，超期操作日志自动清理</div></div>
-          <div class="mb-3"><label class="form-label-sm" style="margin-right:12px">全局默认上传最大附件</label><input class="form-control-sm-custom" v-model.number="settingsAttachMb" type="number" min="1" max="200" style="max-width:200px"><div style="font-size:12px;color:#999;margin-top:4px">范围：1-200M，默认20M，超出限制的附件上传将被拒绝</div></div>
-          <button class="btn-primary-custom btn-sm-custom" @click="saveSettings" :disabled="settingsSaving"><span v-if="settingsSaving">保存中...</span><span v-else><i class="bi bi-check2 me-1"></i>保存设置</span></button>
+        <div class="white-card">
+          <h5 style="color:#0A2E5C;font-weight:700;margin-bottom:16px"><i class="bi bi-gear me-2"></i>系统设置</h5>
+          <div class="row g-2">
+            <div class="col-md-4">
+              <label class="form-label-sm">全局默认提醒提前天数</label>
+              <input class="form-control-sm-custom" v-model.number="settingsDays" type="number" min="1" max="365">
+              <div class="field-hint">范围 1-365 天，默认 60 天</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label-sm">全局默认日志保留天数</label>
+              <input class="form-control-sm-custom" v-model.number="settingsLogDays" type="number" min="1" max="3650">
+              <div class="field-hint">范围 1-3650 天，默认 90 天，超期自动清理</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label-sm">全局默认上传最大附件（M）</label>
+              <input class="form-control-sm-custom" v-model.number="settingsAttachMb" type="number" min="1" max="200">
+              <div class="field-hint">范围 1-200 M，默认 20 M，超出将被拒绝</div>
+            </div>
+          </div>
+          <div style="margin-top:16px">
+            <button class="btn-primary-custom btn-sm-custom" @click="saveSettings" :disabled="settingsSaving"><span v-if="settingsSaving">保存中...</span><span v-else><i class="bi bi-check2 me-1"></i>保存设置</span></button>
+          </div>
+        </div>
+        <div class="white-card">
+          <h5 style="color:#0A2E5C;font-weight:700;margin-bottom:6px"><i class="bi bi-chat-dots me-2"></i>短信提醒设置</h5>
+          <div class="field-hint" style="margin-bottom:14px">平台：湘潭市政务短信服务平台。关闭总开关后不发送任何短信（不影响首页台账提醒）。收件人：项目合同=经办人+现场负责人；资产合同=责任人+承租人。</div>
+          <div class="settings-section-title">开关与签名</div>
+          <div class="row g-2">
+            <div class="col-md-2"><label class="form-label-sm">总开关</label><label class="switch-item"><input type="checkbox" v-model="smsCfg.enabled">启用短信发送</label></div>
+            <div class="col-md-2"><label class="form-label-sm">每周自动提醒</label><label class="switch-item"><input type="checkbox" v-model="smsCfg.weekly_enabled">启用</label></div>
+          </div>
+          <div class="settings-section-title" style="margin-top:16px">连接参数</div>
+          <div class="row g-2">
+            <div class="col-md-5"><label class="form-label-sm">接口前缀</label><input class="form-control-sm-custom" v-model="smsCfg.base_url"></div>
+            <div class="col-md-3"><label class="form-label-sm">AccessKey</label><input class="form-control-sm-custom" v-model="smsCfg.access_key"></div>
+            <div class="col-md-4"><label class="form-label-sm">SecretKey</label><input class="form-control-sm-custom" type="password" v-model="smsCfg.secret_key" placeholder="留空则不改"></div>
+          </div>
+          <div class="settings-section-title" style="margin-top:16px">定时与限制</div>
+          <div class="row g-2">
+            <div class="col-6 col-md-2"><label class="form-label-sm">周几</label><select class="form-select-sm-custom" v-model.number="smsCfg.weekday"><option :value="1">周一</option><option :value="2">周二</option><option :value="3">周三</option><option :value="4">周四</option><option :value="5">周五</option><option :value="6">周六</option><option :value="7">周日</option></select></div>
+            <div class="col-3 col-md-1"><label class="form-label-sm">时</label><input type="number" min="0" max="23" class="form-control-sm-custom" v-model.number="smsCfg.hour"></div>
+            <div class="col-3 col-md-1"><label class="form-label-sm">分</label><input type="number" min="0" max="59" class="form-control-sm-custom" v-model.number="smsCfg.minute"></div>
+            <div class="col-6 col-md-2"><label class="form-label-sm">单次上限</label><input type="number" min="1" max="1000" class="form-control-sm-custom" v-model.number="smsCfg.max_per_run"></div>
+            <div class="col-6 col-md-2"><label class="form-label-sm">超时（秒）</label><input type="number" min="1" max="120" class="form-control-sm-custom" v-model.number="smsCfg.timeout"></div>
+            <div class="col-12 col-md-4"><label class="form-label-sm">回调口令（可选）</label><input class="form-control-sm-custom" v-model="smsCfg.receipt_token" placeholder="留空则不校验平台回调"></div>
+          </div>
+          <div class="settings-section-title" style="margin-top:16px">内容与频率限制（平台规范）</div>
+          <div class="row g-2">
+            <div class="col-md-2"><label class="form-label-sm">正文末尾署名</label><label class="switch-item"><input type="checkbox" v-model="smsCfg.include_sign">启用</label></div>
+            <div class="col-md-2"><label class="form-label-sm">单段字数</label><input type="number" min="20" max="500" class="form-control-sm-custom" v-model.number="smsCfg.segment_len"></div>
+            <div class="col-md-2"><label class="form-label-sm">最多分段</label><input type="number" min="1" max="10" class="form-control-sm-custom" v-model.number="smsCfg.max_segments"></div>
+            <div class="col-md-2"><label class="form-label-sm">敏感词校验</label><label class="switch-item"><input type="checkbox" v-model="smsCfg.block_check">启用</label></div>
+            <div class="col-md-2"><label class="form-label-sm">每号每日上限</label><input type="number" min="0" max="100" class="form-control-sm-custom" v-model.number="smsCfg.daily_per_phone"></div>
+            <div class="col-md-2"><label class="form-label-sm">同号最小间隔（秒）</label><input type="number" min="0" max="3600" class="form-control-sm-custom" v-model.number="smsCfg.min_interval_sec"></div>
+            <div class="col-12"><label class="form-label-sm">敏感词表（多个用逗号分隔）</label><input class="form-control-sm-custom" v-model="smsCfg.block_words" placeholder="楼价,打折,特价,优惠,…"></div>
+            <div class="col-12"><label class="form-label-sm">署名文本（追加在每条短信末尾；<b>不得使用「【】」</b>）</label><input class="form-control-sm-custom" v-model="smsCfg.sign_suffix" placeholder="（湘潭市机关事务管理局）"></div>
+          </div>
+          <div class="field-hint">平台规范：内容<b>不得含「【】」</b>（会被判多签名并阻断，故署名使用全角括号「（）」）；单条不宜过长，超出「单段字数」时自动拆分，最多「最多分段」段；同一号码每日不超过 100 条、且需满足最小发送间隔；号码必须是有效手机号。</div>
+          <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="btn-primary-custom btn-sm-custom" @click="saveSmsCfg" :disabled="smsSaving"><span v-if="smsSaving">保存中...</span><span v-else><i class="bi bi-check2 me-1"></i>保存短信设置</span></button>
+            <button class="btn-outline-custom btn-sm-custom" @click="runWeeklyNow" :disabled="smsRunning"><span v-if="smsRunning"><i class="bi bi-hourglass-split me-1"></i>执行中...</span><span v-else><i class="bi bi-send me-1"></i>立即执行本周提醒</span></button>
+            <button class="btn-outline-custom btn-sm-custom" @click="testSmsConn" :disabled="smsTesting"><span v-if="smsTesting"><i class="bi bi-hourglass-split me-1"></i>测试中...</span><span v-else><i class="bi bi-plug me-1"></i>连接测试</span></button>
+            <span style="font-size:12px;color:var(--text-secondary)">上次定时执行：{{ smsCfg.last_run_at || '—' }}</span>
+          </div>
+          <div v-if="smsTestResult" style="margin-top:10px;font-size:13px;line-height:1.9">
+            <div :style="{color: smsTestResult.ok ? '#2E7D32' : '#C62828', fontWeight:600}">
+              <i class="bi" :class="smsTestResult.ok ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill'"></i> {{ smsTestResult.message }}
+            </div>
+            <div v-for="(s,i) in (smsTestResult.steps || [])" :key="i" :style="{color: s.ok ? '#2E7D32' : '#C62828'}">
+              {{ s.ok ? '✔' : '✘' }} {{ s.step }}（{{ s.ms }}ms）：{{ s.detail }}
+            </div>
+          </div>
+        </div>
+        <div class="white-card">
+          <h5 style="color:#0A2E5C;font-weight:700;margin-bottom:6px"><i class="bi bi-file-text me-2"></i>短信模板</h5>
+          <div class="field-hint" style="margin-bottom:14px">占位符：{name} 名称、{number} 编号、{due} 到期日、{days} 剩余天数、{tenant} 承租方、{amount} 金额、{note} 催办说明。</div>
+          <div class="row g-2">
+            <div class="col-md-6" v-for="t in smsTemplates" :key="t['场景']">
+              <div class="tpl-item">
+                <label class="form-label-sm">{{ t['场景名称'] }}<span style="color:var(--text-secondary);font-weight:400">{{ t['场景'] }}</span></label>
+                <textarea class="form-control-sm-custom" rows="2" v-model="t['模板内容']"></textarea>
+                <div style="margin-top:8px;text-align:right"><button class="btn-outline-custom btn-sm-custom" @click="saveSmsTemplate(t)"><i class="bi bi-check2 me-1"></i>保存该模板</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-if="currentView==='sms'" key="sms">
+        <div class="white-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+            <h5 style="color:#0A2E5C;font-weight:700;margin:0"><i class="bi bi-chat-dots me-2"></i>短信发送记录</h5>
+            <div style="display:flex;gap:10px">
+              <button v-if="store.user && store.user.role!=='查询用户'" class="btn-primary-custom btn-sm-custom" @click="openSmsFreeModal"><i class="bi bi-send me-1"></i>点对点发送</button>
+              <button v-if="store.user && store.user.role!=='查询用户'" class="btn-outline-custom btn-sm-custom" :disabled="smsChecked.length===0 || smsResending" @click="resendSmsChecked"><span v-if="smsResending"><i class="bi bi-hourglass-split me-1"></i>重发中...</span><span v-else><i class="bi bi-arrow-repeat me-1"></i>重发选中（{{ smsChecked.length }}）</span></button>
+              <button class="btn-outline-custom btn-sm-custom" @click="loadSmsLogs"><i class="bi bi-arrow-clockwise me-1"></i>刷新</button>
+            </div>
+          </div>
+          <div class="row g-2" style="margin-bottom:10px">
+            <div class="col-md-2"><label class="form-label-sm">场景</label><select class="form-select-sm-custom" v-model="smsLogFilter.scene"><option value="">全部</option><option value="expire">到期提醒</option><option value="receivable">待收提醒</option><option value="payable">待支提醒</option><option value="urge">催办</option><option value="manual">点对点</option></select></div>
+            <div class="col-md-2"><label class="form-label-sm">状态</label><select class="form-select-sm-custom" v-model="smsLogFilter.status"><option value="">全部</option><option value="成功">成功</option><option value="失败">失败</option><option value="待发送">待发送</option></select></div>
+            <div class="col-md-3"><label class="form-label-sm">关键字</label><input class="form-control-sm-custom" v-model="smsLogFilter.q" placeholder="合同 / 编号 / 接收人 / 内容"></div>
+            <div class="col-md-2 d-flex align-items-end"><button class="btn-primary-custom btn-sm-custom btn-height-match" @click="searchSmsLogs"><i class="bi bi-search me-1"></i>查询</button></div>
+          </div>
+          <div style="overflow:auto">
+            <table class="table-custom">
+              <thead><tr><th style="width:40px;text-align:center"><input type="checkbox" :checked="allFailedChecked" :disabled="failedRows.length===0 || (store.user && store.user.role==='查询用户')" @change="toggleAllFailed" title="全选失败记录"></th><th style="width:140px">时间</th><th style="width:80px">场景</th><th>合同</th><th style="width:110px">接收人</th><th style="width:120px">手机号</th><th style="width:70px">状态</th><th>内容</th><th style="width:110px">回执/回复</th></tr></thead>
+              <tbody>
+                <tr v-for="l in smsLogs" :key="l.id">
+                  <td style="text-align:center"><input v-if="l['状态']==='失败' && store.user.role!=='查询用户'" type="checkbox" :checked="smsChecked.includes(l.id)" @change="toggleSmsCheck(l.id)"></td>
+                  <td>{{ l['时间'] }}</td>
+                  <td>{{ smsSceneLabel(l['场景']) }}</td>
+                  <td>{{ l['关联名称'] || '—' }}<span v-if="l['关联编号']" style="color:var(--text-secondary)">（{{ l['关联编号'] }}）</span></td>
+                  <td>{{ l['接收人'] || l['接收人类型'] }}</td>
+                  <td>{{ l['手机号'] }}</td>
+                  <td><span :style="{color: l['状态']==='成功'?'#2E7D32':(l['状态']==='失败'?'#C62828':'#E65100')}">{{ l['状态'] }}</span></td>
+                  <td style="max-width:420px;white-space:normal">{{ l['短信内容'] }}</td>
+                  <td>{{ l['回执描述'] || '—' }}<div v-if="l['回复内容']" style="color:var(--text-secondary);font-size:12px">回复：{{ l['回复内容'] }}</div></td>
+                </tr>
+                <tr v-if="smsLogs.length===0"><td colspan="9" style="text-align:center;color:var(--text-secondary);padding:24px">暂无短信记录</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination-bar" style="padding:12px 0 0">
+            <div class="page-info"><span>共 {{ smsLogsTotal }} 条</span><select v-model="smsLogsPageSize" @change="smsLogsPage=1;loadSmsLogs()"><option value="20">20条/页</option><option value="50">50条/页</option><option value="100">100条/页</option></select></div>
+            <div class="page-btns">
+              <button :disabled="smsLogsPage<=1" @click="smsLogsPage--;loadSmsLogs()">上一页</button>
+              <template v-for="p in smsLogsPages" :key="p"><button v-if="p==='...'" disabled>...</button><button v-else :class="{active:p===smsLogsPage}" @click="smsLogsPage=p;loadSmsLogs()">{{ p }}</button></template>
+              <button :disabled="smsLogsPage>=smsLogsMaxPage" @click="smsLogsPage++;loadSmsLogs()">下一页</button>
+            </div>
+          </div>
         </div>
       </div>
       <div v-if="currentView==='logs'" key="logs">
@@ -550,19 +862,19 @@ body{background:#F0F4FA;min-height:100vh}
               <div class="col-md-2 d-flex align-items-end"><button class="btn-primary-custom btn-sm-custom btn-height-match" style="margin-right:8px" @click="searchLogs"><i class="bi bi-search me-1"></i>查询</button><button class="btn-outline-custom btn-sm-custom btn-height-match" @click="resetLogs"><i class="bi bi-arrow-counterclockwise me-1"></i>重置</button></div>
             </div>
           </div>
-        </div>
-        <div class="white-card" style="padding:0;overflow:auto">
+          <div style="overflow:auto;margin-top:10px">
           <table class="table-custom">
             <thead><tr><th style="width:150px">时间</th><th>用户名</th><th>姓名</th><th>角色</th><th style="width:120px">IP地址</th><th>模块</th><th>操作类型</th><th>对象</th><th>详情</th><th style="width:70px">结果</th></tr></thead>
             <tbody>
-              <tr v-if="logsItems.length===0"><td colspan="10" style="text-align:center;padding:30px;color:#999"><div class="empty-state-icon"><i class="bi bi-journal-text"></i></div>暂无日志记录</td></tr>
+              <tr v-if="logsItems.length===0"><td colspan="10" style="text-align:center;padding:30px;color:var(--text-secondary)"><div class="empty-state-icon"><i class="bi bi-journal-text"></i></div>暂无日志记录</td></tr>
               <tr v-for="(l, li) in logsItems" :key="li">
                 <td>{{ l['时间'] }}</td><td>{{ l['用户名'] }}</td><td>{{ l['姓名'] }}</td><td>{{ l['角色'] }}</td><td>{{ l['IP'] }}</td><td>{{ l['模块'] }}</td><td>{{ l['操作类型'] }}</td><td>{{ l['对象'] }}</td><td style="max-width:240px">{{ l['详情'] }}</td>
                 <td><span :class="l['结果']==='成功' ? 'badge-success' : 'badge-danger'">{{ l['结果'] }}</span></td>
               </tr>
             </tbody>
           </table>
-          <div class="pagination-bar" style="padding:12px 16px">
+          </div>
+          <div class="pagination-bar" style="padding:12px 0 0">
             <div class="page-info"><span>共 {{ logsTotal }} 条</span><select v-model="logsPageSize" @change="logsPage=1;loadLogs()"><option value="20">20条/页</option><option value="50">50条/页</option><option value="100">100条/页</option></select></div>
             <div class="page-btns">
               <button :disabled="logsPage<=1" @click="logsPage--;loadLogs()">上一页</button>
@@ -571,19 +883,59 @@ body{background:#F0F4FA;min-height:100vh}
             </div>
           </div>
         </div>
+        <div class="white-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+            <h5 style="color:#0A2E5C;font-weight:700;margin:0"><i class="bi bi-pencil-square me-2"></i>字段级变更日志</h5>
+            <div class="btn-toolbar">
+              <button class="btn-outline-custom btn-sm-custom" @click="loadFieldLogs"><i class="bi bi-arrow-clockwise me-1"></i>刷新</button>
+            </div>
+          </div>
+          <div class="search-toggle" @click="fieldLogsSearchOpen=!fieldLogsSearchOpen"><i class="bi" :class="fieldLogsSearchOpen?'bi-chevron-up':'bi-chevron-down'"></i> 搜索筛选条件</div>
+          <div class="search-panel" :class="{open:fieldLogsSearchOpen}">
+            <div class="row g-2">
+              <div class="col-md-2"><label class="form-label-sm">开始日期</label><input class="form-control-sm-custom" v-model="fieldLogsFilter.start_date" type="date"></div>
+              <div class="col-md-2"><label class="form-label-sm">结束日期</label><input class="form-control-sm-custom" v-model="fieldLogsFilter.end_date" type="date"></div>
+              <div class="col-md-2" v-if="store.user.role==='管理员'"><label class="form-label-sm">操作用户</label><input class="form-control-sm-custom" v-model="fieldLogsFilter.username" placeholder="用户名/姓名"></div>
+              <div class="col-md-2"><label class="form-label-sm">操作模块</label><select class="form-select-sm-custom" v-model="fieldLogsFilter.module"><option value="">全部</option><option>合同台账</option><option>资产合同台账</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">字段名</label><select class="form-select-sm-custom" v-model="fieldLogsFilter.field"><option value="">全部</option><option v-for="f in fieldLogFieldOptions" :key="f" :value="f">{{ f }}</option></select></div>
+              <div class="col-md-2 d-flex align-items-end"><button class="btn-primary-custom btn-sm-custom btn-height-match" style="margin-right:8px" @click="searchFieldLogs"><i class="bi bi-search me-1"></i>查询</button><button class="btn-outline-custom btn-sm-custom btn-height-match" @click="resetFieldLogs"><i class="bi bi-arrow-counterclockwise me-1"></i>重置</button></div>
+            </div>
+          </div>
+          <div style="overflow:auto;margin-top:10px">
+            <table class="table-custom">
+              <thead><tr><th style="width:150px">时间</th><th style="width:90px">姓名</th><th style="width:110px">模块</th><th>对象</th><th style="width:120px">字段</th><th>原值</th><th>新值</th></tr></thead>
+              <tbody>
+                <tr v-if="fieldLogsItems.length===0"><td colspan="7" style="text-align:center;padding:30px;color:var(--text-secondary)"><div class="empty-state-icon"><i class="bi bi-pencil-square"></i></div>暂无字段变更记录</td></tr>
+                <tr v-for="(f, fi) in fieldLogsItems" :key="fi">
+                  <td>{{ f['时间'] }}</td><td>{{ f['姓名'] }}</td><td>{{ f['模块'] }}</td>
+                  <td>{{ f['对象编号'] }}<span v-if="f['对象名称']" style="color:var(--text-secondary)"> · {{ f['对象名称'] }}</span></td>
+                  <td>{{ f['字段'] }}</td><td>{{ f['原值'] || '（空）' }}</td><td>{{ f['新值'] || '（空）' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination-bar" style="padding:12px 0 0">
+            <div class="page-info"><span>共 {{ fieldLogsTotal }} 条</span><select v-model="fieldLogsPageSize" @change="fieldLogsPage=1;loadFieldLogs()"><option value="20">20条/页</option><option value="50">50条/页</option><option value="100">100条/页</option></select></div>
+            <div class="page-btns">
+              <button :disabled="fieldLogsPage<=1" @click="fieldLogsPage--;loadFieldLogs()">上一页</button>
+              <template v-for="p in fieldLogsPages" :key="p"><button v-if="p==='...'" disabled>...</button><button v-else :class="{active:p===fieldLogsPage}" @click="fieldLogsPage=p;loadFieldLogs()">{{ p }}</button></template>
+              <button :disabled="fieldLogsPage>=fieldLogsMaxPage" @click="fieldLogsPage++;loadFieldLogs()">下一页</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     </transition>
   </div>
   <!-- Contract Modal -->
-  <transition name="page"><div class="modal-overlay" v-if="contractModalOpen" @click.self="contractModalOpen=false">
-    <div class="modal-content" style="max-width:1000px">
-      <div class="modal-header"><h5>{{ contractEditId?'编辑合同':'新增合同' }}</h5><button class="modal-close" @click="contractModalOpen=false">&times;</button></div>
+  <transition name="page"><div class="modal-overlay contract-edit" v-if="contractModalOpen" @click.self="contractModalOpen=false">
+    <div class="modal-content">
+      <div class="modal-header"><h5><i class="bi bi-file-text me-2"></i>{{ contractEditId?'编辑项目合同':'新增项目合同' }}</h5><button class="modal-close" @click="contractModalOpen=false">&times;</button></div>
       <div class="modal-body">
         <div v-if="contractArchived" class="archive-banner"><i class="bi bi-archive-fill me-1"></i>该合同已归档，仅可浏览，不可修改</div>
         <fieldset :disabled="!canEdit || contractArchived" style="border:0;padding:0;margin:0">
         <div class="row g-2">
-          <div class="col-md-4"><label class="form-label-sm">编号 <span style="color:#f44336">*</span></label><input class="form-control-sm-custom" v-model="contractForm.number" :class="{'is-invalid':formErrors.number}" @input="delete formErrors.number"><div class="form-error">{{ formErrors.number||'' }}</div></div>
+          <div class="col-md-4"><label class="form-label-sm">编号 <span style="color:#f44336">*</span></label><input class="form-control-sm-custom" v-model="contractForm.number" readonly :class="{'is-invalid':formErrors.number}" title="编号由《合同编号规则》自动生成，不可手工修改"><div class="form-error">{{ formErrors.number||'' }}</div></div>
           <div class="col-md-4"><label class="form-label-sm">项目分类 <span style="color:#f44336">*</span></label><select class="form-select-sm-custom" v-model="contractForm.category" :class="{'is-invalid':formErrors.category}" @change="delete formErrors.category"><option value="">请选择</option><option>服务类</option><option>维护维修类</option><option>货物类</option><option>建设项目</option></select></div>
           <div class="col-md-4"><label class="form-label-sm">项目名称 <span style="color:#f44336">*</span></label><input class="form-control-sm-custom" v-model="contractForm.name" :class="{'is-invalid':formErrors.name}" @input="delete formErrors.name"><div class="form-error">{{ formErrors.name||'' }}</div></div>
           <div class="col-md-4"><label class="form-label-sm">决策依据</label><input class="form-control-sm-custom" v-model="contractForm.decision_basis"></div>
@@ -608,7 +960,7 @@ body{background:#F0F4FA;min-height:100vh}
           <div class="col-md-3"><label class="form-label-sm">未支付</label><input class="form-control-sm-custom" v-model.number="contractForm.unpaid_amount" type="number" step="0.01"></div>
           <div class="col-md-2"><label class="form-label-sm">期限</label><input class="form-control-sm-custom" v-model="contractForm.term"></div>
           <div class="col-md-6"><label class="form-label-sm">经办人 <span style="color:#f44336">*</span></label><input class="form-control-sm-custom" v-model="contractForm.handler" placeholder="多人用中文顿号分隔" :class="{'is-invalid':formErrors.handler}" @input="delete formErrors.handler"><div class="form-error">{{ formErrors.handler||'' }}</div></div>
-          <div class="col-md-4"><label class="form-label-sm">所属部门</label><input class="form-control-sm-custom" v-model="contractForm.department" readonly></div>
+                <div class="col-md-4"><label class="form-label-sm">所属部门</label><input class="form-control-sm-custom" :value="deptShortName(contractForm.department)" :title="contractForm.department" readonly></div>
           <div class="col-md-4"><label class="form-label-sm">下次招采时间</label><input class="form-control-sm-custom" v-model="contractForm.next_bid_date" type="date" :class="{'is-invalid':formErrors.next_bid_date}" @input="delete formErrors.next_bid_date"><div class="form-error">{{ formErrors.next_bid_date||'' }}</div></div>
           <div class="col-md-4"><label class="form-label-sm">提醒提前天数</label><input class="form-control-sm-custom" v-model.number="contractForm.remind_days" type="number" min="1" max="365"></div>
           <div class="col-md-4"><label class="form-label-sm">备注</label><input class="form-control-sm-custom" v-model="contractForm.remark"></div>
@@ -632,10 +984,196 @@ body{background:#F0F4FA;min-height:100vh}
         </div>
         </fieldset>
       </div>
-      <div class="modal-footer"><button class="btn-primary-custom btn-sm-custom" @click="printContractPdf"><i class="bi bi-printer me-1"></i>打印为PDF</button><button class="btn-outline-custom btn-sm-custom" @click="contractModalOpen=false">{{ contractArchived?'关闭':'取消' }}</button><button v-if="canEdit && !contractArchived" class="btn-primary-custom btn-sm-custom" @click="saveContract" :disabled="contractSaving"><span v-if="contractSaving">保存中...</span><span v-else>保存</span></button></div>
+      <div class="modal-footer"><button v-if="contractEditId && !contractArchived && store.user.role!=='查询用户'" type="button" class="btn-outline-custom btn-sm-custom" @click="openSmsModal('project', contractEditId)"><i class="bi bi-chat-dots me-1"></i>短信提醒</button><button class="btn-primary-custom btn-sm-custom" @click="printContractPdf"><i class="bi bi-printer me-1"></i>打印为PDF</button><button class="btn-outline-custom btn-sm-custom" @click="contractModalOpen=false">{{ contractArchived?'关闭':'取消' }}</button><button v-if="canEdit && !contractArchived" class="btn-primary-custom btn-sm-custom" @click="saveContract" :disabled="contractSaving"><span v-if="contractSaving">保存中...</span><span v-else>保存</span></button></div>
     </div>
   </div></transition>
-  <!-- 导入预览/结果 Modal -->
+      <transition name="page"><div class="modal-overlay contract-edit" v-if="assetModalOpen" @click.self="assetModalOpen=false">
+        <div class="modal-content asset-modal">
+          <div class="modal-header"><h5><i class="bi bi-briefcase me-2"></i>{{ assetEditId?'编辑资产合同':'新增资产合同' }}</h5><button class="modal-close" @click="assetModalOpen=false">&times;</button></div>
+          <div class="modal-body">
+            <div v-if="assetArchived" class="archive-banner"><i class="bi bi-archive-fill me-1"></i>该资产合同已归档，仅可浏览，不可修改</div>
+            <fieldset :disabled="!canEditAsset || assetArchived" style="border:0;padding:0;margin:0">
+            <div style="font-size:14px;font-weight:600;color:#333333;margin-bottom:10px"><i class="bi bi-house-door me-1"></i>资产与承租人信息</div>
+            <div class="row g-2">
+              <div class="col-md-3"><label class="form-label-sm">资产名称 <span style="color:#f44336">*</span></label><input class="form-control-sm-custom" v-model="assetForm.asset_name" :class="{'is-invalid':assetErrors.asset_name}" @input="delete assetErrors.asset_name"><div class="form-error">{{ assetErrors.asset_name||'' }}</div></div>
+              <div class="col-md-3"><label class="form-label-sm">位置 <span style="color:#f44336">*</span></label><input class="form-control-sm-custom" v-model="assetForm.place" :class="{'is-invalid':assetErrors.place}" @input="delete assetErrors.place"><div class="form-error">{{ assetErrors.place||'' }}</div></div>
+              <div class="col-md-3"><label class="form-label-sm">承租人 <span style="color:#f44336">*</span></label><input class="form-control-sm-custom" v-model="assetForm.tenant" :class="{'is-invalid':assetErrors.tenant}" @input="delete assetErrors.tenant"><div class="form-error">{{ assetErrors.tenant||'' }}</div></div>
+              <div class="col-md-3"><label class="form-label-sm">联系电话</label><input class="form-control-sm-custom" v-model="assetForm.phone"></div>
+              <div class="col-md-3"><label class="form-label-sm">面积（㎡）</label><input class="form-control-sm-custom" v-model="assetForm.area" type="number" step="0.01" :class="{'is-invalid':assetErrors.area}" @input="delete assetErrors.area"><div class="form-error">{{ assetErrors.area||'' }}</div></div>
+              <div class="col-md-3"><label class="form-label-sm">租期开始日</label><input class="form-control-sm-custom" v-model="assetForm.lease_start" type="date" :class="{'is-invalid':assetErrors.lease_start}" @input="delete assetErrors.lease_start" @change="autoCalcAssetTotal()"><div class="form-error">{{ assetErrors.lease_start||'' }}</div></div>
+              <div class="col-md-3"><label class="form-label-sm">租期结束日</label><input class="form-control-sm-custom" v-model="assetForm.lease_end" type="date" :class="{'is-invalid':assetErrors.lease_end}" @input="delete assetErrors.lease_end" @change="onAssetLeaseEndChange"><div class="form-error">{{ assetErrors.lease_end||'' }}</div></div>
+              <div class="col-md-3"><label class="form-label-sm">租期</label><input class="form-control-sm-custom" :value="assetLeaseTermText" readonly placeholder="由租期起止日自动计算"></div>
+              <div class="col-md-3"><label class="form-label-sm">年租金（元）</label><input class="form-control-sm-custom" v-model="assetForm.annual_rent" type="number" step="0.01" :class="{'is-invalid':assetErrors.annual_rent}" @input="delete assetErrors.annual_rent; autoCalcAssetTotal()"><div class="form-error">{{ assetErrors.annual_rent||'' }}</div></div>
+              <div class="col-md-3"><label class="form-label-sm">总合同额</label><input class="form-control-sm-custom" v-model="assetForm.total_amount" type="number" step="0.01" :class="{'is-invalid':assetErrors.total_amount}" @input="delete assetErrors.total_amount" title="按 年租金（元）× 租期年数 自动计算，可手动修改"><div class="form-error">{{ assetErrors.total_amount||'' }}</div></div>
+              <div class="col-md-3"><label class="form-label-sm">押金（元）</label><input class="form-control-sm-custom" v-model="assetForm.deposit" type="number" step="0.01" :class="{'is-invalid':assetErrors.deposit}" @input="delete assetErrors.deposit"><div class="form-error">{{ assetErrors.deposit||'' }}</div></div>
+              <div class="col-md-3"><label class="form-label-sm">下次出租时间</label><input class="form-control-sm-custom" v-model="assetForm.next_lease_date" type="date" :class="{'is-invalid':assetErrors.next_lease_date}" @input="delete assetErrors.next_lease_date" title="默认等于租期结束日 + 1 天，可手动修改"><div class="form-error">{{ assetErrors.next_lease_date||'' }}</div></div>
+            </div>
+            <hr style="margin:14px 0 4px">
+            <div class="d-flex justify-content-between align-items-center" style="margin-bottom:8px">
+              <div style="font-size:14px;font-weight:600;color:#333333"><i class="bi bi-receipt me-1"></i>租金收取明细（一个合同可多条收租记录，单位：元）</div>
+              <button class="btn-primary-custom btn-sm-custom" :disabled="!assetRentEditable" @click="addAssetRentRow()"><i class="bi bi-plus-lg me-1"></i>新增租金记录</button>
+            </div>
+            <div style="overflow:auto;max-height:280px;border:1px solid #ebeef5;border-radius:6px">
+              <table class="table-custom asset-rent-table" style="width:100%;margin:0;font-size:12.5px;table-layout:fixed">
+                <colgroup><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:10%"><col style="width:10%"><col style="width:12%"><col style="width:11%"><col style="width:8%"><col style="width:10%"></colgroup>
+                <thead><tr>
+                  <th>收款期次 <span style="color:#f44336">*</span></th>
+                  <th>所属租期开始日</th>
+                  <th>所属租期结束日</th>
+                  <th>应缴金额 <span style="color:#f44336">*</span></th>
+                  <th>实缴金额</th>
+                  <th>缴款日期</th>
+                  <th>缴款方式</th>
+                  <th>收款人</th>
+                  <th>操作</th>
+                </tr></thead>
+                <tbody>
+                  <tr v-if="assetRentRows.length===0"><td colspan="9" style="text-align:center;color:var(--text-secondary);padding:14px">暂无租金收取记录{{ assetRentEditable ? '，可点击右上角“新增租金记录”' : '' }}</td></tr>
+                  <tr v-for="(r, i) in assetRentRows" :key="r._key">
+                    <template v-if="r._edit">
+                      <td><input class="form-control-sm-custom" v-model="r.period_label" :class="{'is-invalid':r._err.period_label}" placeholder="如：2026年第1季度"></td>
+                      <td><input class="form-control-sm-custom" type="date" v-model="r.period_start"></td>
+                      <td><input class="form-control-sm-custom" type="date" v-model="r.period_end"></td>
+                      <td><input class="form-control-sm-custom" type="number" step="0.01" min="0" v-model="r.due_amount" :class="{'is-invalid':r._err.due_amount}"></td>
+                      <td><input class="form-control-sm-custom" type="number" step="0.01" min="0" v-model="r.paid_amount" :class="{'is-invalid':r._err.paid_amount}"></td>
+                      <td><input class="form-control-sm-custom" type="date" v-model="r.pay_date" :class="{'is-invalid':r._err.pay_date}"></td>
+                      <td><select class="form-select-sm-custom" v-model="r.pay_method"><option value="">请选择</option><option v-for="pm in assetRentPayMethods" :key="pm" :value="pm">{{ pm }}</option></select></td>
+                      <td><input class="form-control-sm-custom" v-model="r.payee"></td>
+                      <td style="white-space:nowrap">
+                        <button class="btn-primary-custom btn-sm-custom me-1" :disabled="!assetRentEditable" @click="confirmAssetRentRow(i)">确定</button>
+                        <button class="btn-outline-custom btn-sm-custom" :disabled="!assetRentEditable" @click="cancelAssetRentRow(i)">取消</button>
+                      </td>
+                    </template>
+                    <template v-else>
+                      <td>{{ r.period_label || '-' }}</td>
+                      <td>{{ r.period_start || '-' }}</td>
+                      <td>{{ r.period_end || '-' }}</td>
+                      <td>{{ assetMoney(r.due_amount) }}</td>
+                      <td>{{ assetMoney(r.paid_amount) }}</td>
+                      <td>{{ r.pay_date || '-' }}</td>
+                      <td>{{ r.pay_method || '-' }}</td>
+                      <td>{{ r.payee || '-' }}</td>
+                      <td style="white-space:nowrap">
+                        <button class="btn-primary-custom btn-sm-custom me-1" :disabled="!assetRentEditable" title="编辑" @click="editAssetRentRow(i)"><i class="bi bi-pencil"></i></button>
+                        <button class="btn-danger-custom btn-sm-custom" :disabled="!assetRentEditable" title="删除" @click="removeAssetRentRow(i)"><i class="bi bi-trash"></i></button>
+                      </td>
+                    </template>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="d-flex flex-wrap align-items-center asset-rent-summary" style="gap:20px;font-size:13px">
+              <div>应缴合计：<b>{{ assetMoney(assetRentTotals.due) }}</b></div>
+              <div>实缴合计：<b>{{ assetMoney(assetRentTotals.paid) }}</b></div>
+              <div>差额（应缴-实缴）：<b :style="{color: assetRentTotals.diff > 0 ? '#e53935' : '#2e7d32'}">{{ assetMoney(assetRentTotals.diff) }}</b></div>
+              <div style="color:var(--text-secondary)">共 {{ assetRentRows.length }} 条</div>
+            </div>
+            <hr class="asset-gap-lg">
+            <div class="row g-2">
+              <div class="col-md-2"><label class="form-label-sm">合同编号 <span style="color:#f44336">*</span></label><input class="form-control-sm-custom" v-model="assetForm.number" readonly :class="{'is-invalid':assetErrors.number}" title="编号由《合同编号规则》自动生成，不可手工修改"><div class="form-error">{{ assetErrors.number||'' }}</div></div>
+              <div class="col-md-3"><label class="form-label-sm">管理部门</label><select class="form-select-sm-custom" v-model="assetForm.dept" @change="onAssetDeptChange"><option value="">请选择</option><option v-if="assetForm.dept && !deptOptions.includes(assetForm.dept)" :value="assetForm.dept">{{ deptShortName(assetForm.dept) }}</option><option v-for="d in deptOptions" :key="d" :value="d">{{ deptShortName(d) }}</option></select></div>
+              <div class="col-md-2"><label class="form-label-sm">责任人</label><input class="form-control-sm-custom" v-model="assetForm.person" placeholder="多人用中文顿号分隔"></div>
+              <div class="col-md-2"><label class="form-label-sm">提醒提前天数</label><input class="form-control-sm-custom" v-model.number="assetForm.remind_days" type="number" min="1" max="365" :class="{'is-invalid':assetErrors.remind_days}" @input="delete assetErrors.remind_days"><div class="form-error">{{ assetErrors.remind_days||'' }}</div></div>
+              <div class="col-md-3"><label class="form-label-sm">备注</label><input class="form-control-sm-custom" v-model="assetForm.remark"></div>
+            </div>
+            <hr style="margin:14px 0 4px">
+            <div style="font-size:14px;font-weight:600;color:#333333;margin-bottom:10px"><i class="bi bi-paperclip me-1"></i>附件（选填，仅支持图片或PDF，单文件不超过 {{ store.config.default_attach_max_mb || 20 }}M）</div>
+            <div class="row g-2">
+              <div class="col-md-4" v-for="at in assetAttachTypes" :key="at.key">
+                <label class="form-label-sm">{{ at.label }}</label>
+                <input type="file" class="form-control-sm-custom" :accept="at.accept" @change="onAssetAttachSelect(at.key, $event)">
+                <div v-if="assetAttachments[at.key] && assetAttachments[at.key].length" style="margin-top:8px">
+                  <div v-for="(a, ai) in assetAttachments[at.key]" :key="a.id || ('new-'+ai)" class="attach-item">
+                    <i class="bi bi-paperclip me-1"></i>
+                    <a v-if="a.id" :href="'/api/asset_attachments/' + a.id + '/download'" :title="a.type_label" style="color:#1E90FF;text-decoration:none">{{ a.display_name }}</a>
+                    <span v-else style="color:#333">{{ a.display_name }}</span>
+                    <span v-if="a.size" class="attach-size">{{ a.size }}</span>
+                    <button type="button" class="attach-remove" :title="'移除附件'" @click="removeAssetAttachment(at.key, ai)">&times;</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            </fieldset>
+          </div>
+          <div class="modal-footer"><button v-if="assetEditId && !assetArchived && store.user.role!=='查询用户'" type="button" class="btn-outline-custom btn-sm-custom" @click="openSmsModal('asset', assetEditId)"><i class="bi bi-chat-dots me-1"></i>短信提醒</button><button type="button" class="btn-primary-custom btn-sm-custom" @click="printAssetPdf"><i class="bi bi-printer me-1"></i>打印为PDF</button><button class="btn-outline-custom btn-sm-custom" @click="assetModalOpen=false">{{ assetArchived?'关闭':'取消' }}</button><button v-if="canEditAsset && !assetArchived" class="btn-primary-custom btn-sm-custom" @click="saveAsset" :disabled="assetSaving"><span v-if="assetSaving">保存中...</span><span v-else>保存</span></button></div>
+        </div>
+      </div></transition>
+      <!-- 资产合同导入预览/结果 Modal -->
+      <transition name="page"><div class="modal-overlay" v-if="smsModalOpen" @click.self="smsModalOpen=false">
+        <div class="modal-content" style="max-width:580px">
+          <div class="modal-header"><h5><i class="bi bi-chat-dots me-2"></i>{{ smsFree ? '点对点发送短信' : '短信提醒 / 点对点发送' }}</h5><button class="modal-close" @click="smsModalOpen=false">&times;</button></div>
+          <div class="modal-body">
+            <div class="mb-3" v-if="!smsFree"><label class="form-label-sm">该合同短信提醒</label>
+              <div><label style="margin-right:16px"><input type="radio" :value="true" v-model="smsSwitchOn"> 开启</label><label><input type="radio" :value="false" v-model="smsSwitchOn"> 关闭</label></div>
+            </div>
+            <div class="mb-3" v-if="!smsFree"><label class="form-label-sm">发送方式</label>
+              <div><label style="margin-right:16px"><input type="radio" value="urge" v-model="smsScene" @change="onSmsSceneChange"> 模板催办（默认收件人）</label><label><input type="radio" value="manual" v-model="smsScene"> 点对点（自填号码）</label></div>
+            </div>
+            <div v-if="smsScene==='urge' && !smsFree" class="mb-3">
+              <label class="form-label-sm">默认收件人（{{ smsRecipients.length }}）</label>
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.7">
+                <span v-for="(r,i) in smsRecipients" :key="r.phone">{{ i>0?'、':'' }}{{ r.type }}·{{ r.name || '—' }}（{{ r.phone }}）</span>
+                <span v-if="smsRecipients.length===0">未解析到手机号：请先补录用户「电话」或资产合同「联系电话」。</span>
+              </div>
+              <label class="form-label-sm" style="margin-top:8px">催办说明</label>
+              <textarea class="form-control-sm-custom" rows="2" v-model="smsNote" placeholder="如：请于本周内办结" style="width:100%"></textarea>
+            </div>
+            <div v-else>
+              <label class="form-label-sm">接收手机号（多个用逗号分隔）</label>
+              <input class="form-control-sm-custom" v-model="smsPhones" placeholder="13800000000,13900000000" style="width:100%">
+              <label class="form-label-sm" style="margin-top:8px">短信内容</label>
+              <textarea class="form-control-sm-custom" rows="3" v-model="smsContent" style="width:100%"></textarea>
+              <div class="field-hint" :style="{color: smsContentIssue ? '#C62828' : 'var(--text-secondary)'}">
+                {{ smsContent.length }} 字<span v-if="smsContentIssue">：{{ smsContentIssue }}</span><span v-else>（已自动校验「【】」与敏感词；超长将按平台规范自动分段发送）</span>
+              </div>
+            </div>
+            <div v-if="smsResultMsg" style="font-size:13px;margin-top:10px" :style="{color: smsResultOk?'#2E7D32':'#C62828'}">{{ smsResultMsg }}</div>
+            <div v-if="smsResultBlocked.length" style="margin-top:6px;font-size:12.5px;color:#C62828;line-height:1.8">
+              <div v-for="(b,i) in smsResultBlocked" :key="i">✘ {{ b.phone }}<span v-if="b.name">（{{ b.name }}）</span>：{{ b.reason }}</div>
+            </div>
+          </div>
+          <div class="modal-footer"><button class="btn-outline-custom btn-sm-custom" @click="smsModalOpen=false">关闭</button><button class="btn-primary-custom btn-sm-custom" @click="sendSms" :disabled="smsSending"><span v-if="smsSending">发送中...</span><span v-else><i class="bi bi-send me-1"></i>发送</span></button></div>
+        </div>
+      </div></transition>
+      <!-- 资产合同导入预览/结果 Modal -->
+      <transition name="page"><div class="modal-overlay" v-if="assetImportPreviewOpen" @click.self="assetImportPreviewOpen=false">
+        <div class="modal-content" style="max-width:1000px">
+          <div class="modal-header"><h5><i class="bi bi-file-earmark-spreadsheet me-2"></i>{{ assetImportMode==='result'?'资产合同导入结果':'资产合同导入预览与逐条校验' }}</h5><button class="modal-close" @click="assetImportPreviewOpen=false">&times;</button></div>
+          <div class="modal-body">
+            <div class="import-summary-bar" v-if="assetImportMode==='preview'"><i class="bi bi-info-circle-fill" style="color:#1E90FF"></i><span>共解析 <b>{{ assetImportSummary.total }}</b> 条，可导入 <b style="color:#2E7D32">{{ assetImportSummary.ok }}</b> 条，校验不通过 <b style="color:#E65100">{{ assetImportSummary.error }}</b> 条</span></div>
+            <div class="import-summary-bar" v-else><i class="bi bi-check-circle-fill" style="color:#2E7D32"></i><span>导入完成：新增 <b style="color:#1E90FF">{{ assetImportResult.added }}</b> 条，跳过 <b style="color:#E65100">{{ assetImportResult.skipped.length }}</b> 条</span></div>
+            <div style="overflow:auto;max-height:52vh;margin-top:10px">
+              <table class="table-custom">
+                <thead><tr><th style="width:70px">行号</th><th>位置</th><th>资产名称</th><th>承租人</th><th style="width:90px">状态</th><th>校验说明</th></tr></thead>
+                <tbody>
+                  <template v-if="assetImportMode==='preview'">
+                    <tr v-for="it in assetImportItems" :key="it.row">
+                      <td>{{ it.row }}</td><td>{{ it.place }}</td><td>{{ it.asset_name }}</td><td>{{ it.tenant }}</td>
+                      <td><span :class="it.status==='error'?'text-red':'text-green'">{{ it.status==='error'?'不可导入':'可导入' }}</span></td>
+                      <td style="text-align:left">{{ (it.messages||[]).join('；') }}</td>
+                    </tr>
+                    <tr v-if="assetImportItems.length===0"><td colspan="6" style="text-align:center;padding:20px;color:var(--text-secondary)">文件中没有可导入的数据</td></tr>
+                  </template>
+                  <template v-else>
+                    <tr v-for="it in assetImportResult.skipped" :key="'s'+it.row">
+                      <td>{{ it.row }}</td><td>-</td><td>{{ it.asset_name }}</td><td>-</td>
+                      <td><span class="text-orange">已跳过</span></td>
+                      <td style="text-align:left">{{ (it.errors||[]).join('；') }}</td>
+                    </tr>
+                    <tr v-if="assetImportResult.skipped.length===0"><td colspan="6" style="text-align:center;padding:20px;color:#2E7D32">全部导入成功，无跳过行</td></tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button v-if="assetImportMode==='preview'" class="btn-outline-custom btn-sm-custom" @click="assetImportPreviewOpen=false">取消</button>
+            <button v-if="assetImportMode==='preview'" class="btn-primary-custom btn-sm-custom" @click="confirmAssetImport" :disabled="assetImporting || assetImportSummary.ok===0"><span v-if="assetImporting">导入中...</span><span v-else>确认导入</span></button>
+            <button v-else class="btn-primary-custom btn-sm-custom" @click="assetImportPreviewOpen=false">确定</button>
+          </div>
+        </div>
+      </div></transition>
+<!-- 导入预览/结果 Modal -->
   <transition name="page"><div class="modal-overlay" v-if="importPreviewOpen" @click.self="closeImportPreview">
     <div class="modal-content" style="max-width:1100px">
       <div class="modal-header"><h5><i class="bi bi-file-earmark-spreadsheet me-2"></i>{{ importResultMode==='result'?'导入结果':'导入预览与逐条校验' }}</h5><button class="modal-close" @click="closeImportPreview">&times;</button></div>
@@ -649,11 +1187,11 @@ body{background:#F0F4FA;min-height:100vh}
           <div v-else style="text-align:center;padding:26px;color:#2E7D32;font-size:15px"><i class="bi bi-emoji-smile me-1"></i>全部数据导入成功，无跳过记录</div>
         </template>
         <template v-else>
-          <div class="import-summary-bar"><span>数据行：<b>{{ importPreviewSummary.total }}</b></span><span class="badge-ok">可导入 {{ importPreviewSummary.importable }}</span><span class="badge-warn">警告 {{ importPreviewSummary.warn_count }}</span><span class="badge-error">错误 {{ importPreviewSummary.error_count }}</span><span style="color:#7a8aa5;font-size:12px">错误行不会导入；警告行可导入但建议核对</span></div>
+          <div class="import-summary-bar"><span>数据行：<b>{{ importPreviewSummary.total }}</b></span><span class="badge-status is-ok">可导入 {{ importPreviewSummary.importable }}</span><span class="badge-status is-warning">警告 {{ importPreviewSummary.warn_count }}</span><span class="badge-status is-danger">错误 {{ importPreviewSummary.error_count }}</span><span style="color:#6B7280;font-size:12px">错误行不会导入；警告行可导入但建议核对</span></div>
           <div style="overflow:auto;max-height:52vh">
             <table class="table-custom"><thead><tr><th>Excel行号</th><th>合同编号</th><th>项目名称</th><th>校验结果</th><th>原因</th></tr></thead>
             <tbody>
-              <tr v-if="!importPreviewItems.length"><td colspan="5" style="text-align:center;padding:30px;color:#999"><div class="empty-state-icon"><i class="bi bi-file-earmark-x"></i></div>文件中没有可导入的数据</td></tr>
+              <tr v-if="!importPreviewItems.length"><td colspan="5" style="text-align:center;padding:30px;color:var(--text-secondary)"><div class="empty-state-icon"><i class="bi bi-file-earmark-x"></i></div>文件中没有可导入的数据</td></tr>
               <tr v-for="it in importPreviewItems" :key="it.row"><td>{{ it.row }}</td><td>{{ it.number }}</td><td>{{ it.name }}</td><td><span :class="statusClass(it.status)">{{ statusText(it.status) }}</span></td><td style="color:#666">{{ (it.reasons||[]).join('；') || '—' }}</td></tr>
             </tbody></table>
           </div>
@@ -685,7 +1223,7 @@ const { createApp, ref, reactive, computed, watch, onMounted, nextTick } = Vue;
 const globalLoading = ref(false);
 const store = reactive({
   user: null,
-  dashboard: { total_contracts: 0, total_amount: 0, dept_contracts: 0, expiring_contracts: 0, pending_project_count: 0, unpaid_amount_total: 0 },
+  dashboard: { total_contracts: 0, project_contract_count: 0, asset_contract_count: 0, project_amount: 0, asset_amount: 0, total_amount: 0, dept_contracts: 0, expiring_contracts: 0, expiring_project_count: 0, expiring_asset_count: 0, pending_project_count: 0, unpaid_amount_total: 0, pending_receivable_count: 0, pending_receivable_amount: 0, pending_total_count: 0, pending_total_amount: 0 },
   reminders: [],
   pendingPayments: [],
   config: { default_remind_days: 60, default_attach_max_mb: 20 }
@@ -819,6 +1357,23 @@ const app = createApp({
       [...set].filter(p => p >= 1 && p <= mp).sort((a, b) => a - b).forEach((p, i, a) => { if (i && p - a[i - 1] > 1) arr.push('...'); arr.push(p); });
       return arr;
     });
+    // 字段级变更日志
+    const fieldLogsFilter = reactive({ start_date: '', end_date: '', username: '', module: '', field: '' });
+    const fieldLogsSearchOpen = ref(true);
+    const fieldLogsFields = ref([]);
+    const fieldLogsItems = ref([]);
+    const fieldLogsTotal = ref(0);
+    const fieldLogsPage = ref(1);
+    const fieldLogsPageSize = ref(20);
+    const fieldLogsMaxPage = computed(() => Math.max(1, Math.ceil(fieldLogsTotal.value / fieldLogsPageSize.value)));
+    const fieldLogFieldOptions = computed(() => fieldLogsFields.value || []);
+    const fieldLogsPages = computed(() => {
+      const mp = fieldLogsMaxPage.value, cp = fieldLogsPage.value, arr = [];
+      if (mp <= 7) { for (let i = 1; i <= mp; i++) arr.push(i); return arr; }
+      const set = new Set([1, mp, cp - 1, cp, cp + 1]);
+      [...set].filter(p => p >= 1 && p <= mp).sort((a, b) => a - b).forEach((p, i, a) => { if (i && p - a[i - 1] > 1) arr.push('...'); arr.push(p); });
+      return arr;
+    });
     const contractModalOpen = ref(false);
     const contractEditId = ref(null);
     const contractSaving = ref(false);
@@ -833,8 +1388,26 @@ const app = createApp({
     const attachments = reactive({ decision: [], contract: [], acceptance: [] });
     const ATTACH_ALLOWED = ['.jpg','.jpeg','.png','.gif','.webp','.bmp','.pdf'];
     const formErrors = reactive({});
+    // 合同编号（6 位）：新增项目合同弹窗打开时按《合同编号规则》自动生成并锁定（不可修改）
+    const contractNumberAuto = ref(false);
+    // 编号只能由规则生成：新增态自动生成后只读，编辑态同样只读（禁止手工修改）
+    async function refreshContractNumber() {
+      if (contractEditId.value) return;
+      try {
+        const res = await api('GET', '/contract_number/next?kind=project');
+        if (res && res.number) {
+          contractForm.number = res.number;
+          contractNumberAuto.value = true;
+          delete formErrors.number;
+        } else {
+          if (contractNumberAuto.value) { contractForm.number = ''; }
+          contractNumberAuto.value = false;
+        }
+      } catch (e) { contractNumberAuto.value = false; }
+    }
     const confirm = reactive({ show: false, title: '', message: '', onOk: null, btnText: '确定', loading: false, needReason: false, reason: '', reasonError: '' });
     const statsType = ref('by_dept');
+    const statsTab = ref('project');
     const statsUnit = ref('');
     const statsDept = ref('');
     const statsPerson = ref('');
@@ -847,12 +1420,184 @@ const app = createApp({
     const chartType = ref('bar');
     const chartType2 = ref('bar');
     let chart1Instance = null, chart2Instance = null;
+    // 总合同数卡片：构成明细悬浮气泡（环形图）
+    const countTipOpen = ref(false);
+    const countTipChart = ref(null);
+    let countTipChartInstance = null;
+    const countBreakdown = computed(() => {
+      const p = Number(store.dashboard.project_contract_count) || 0;
+      const a = Number(store.dashboard.asset_contract_count) || 0;
+      const t = p + a;
+      const pct = (n) => (t > 0 ? Math.round(n / t * 100) : 0);
+      return { project: p, asset: a, total: t, projectPct: pct(p), assetPct: pct(a) };
+    });
+    // 总合同额卡片：构成明细悬浮气泡（项目合同额 / 资产合同额，单位万元）
+    const amountTipOpen = ref(false);
+    const amountTipChart = ref(null);
+    let amountTipChartInstance = null;
+    const amountBreakdown = computed(() => {
+      const p = Number(store.dashboard.project_amount) || 0;
+      const a = Number(store.dashboard.asset_amount) || 0;
+      const t = p + a;
+      const pct = (n) => (t > 0 ? Math.round(n / t * 100) : 0);
+      const fmt = (n) => Number(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return { project: fmt(p), asset: fmt(a), projectRaw: p, assetRaw: a, total: t,
+               projectPct: pct(p), assetPct: pct(a) };
+    });
+    // 与“总合同数”卡片一致：气泡内为环形图（蓝=项目合同额、绿=资产合同额）+ 构成明细
+    async function showAmountTip() {
+      amountTipOpen.value = true;
+      await nextTick();
+      const cv = amountTipChart.value;
+      if (!cv) return;
+      if (amountTipChartInstance) { amountTipChartInstance.destroy(); amountTipChartInstance = null; }
+      const b = amountBreakdown.value;
+      amountTipChartInstance = new Chart(cv.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: ['项目合同额', '资产合同额'],
+          datasets: [{ data: [b.projectRaw, b.assetRaw], backgroundColor: ['#1E90FF', '#7CB342'], borderWidth: 0 }]
+        },
+        options: {
+          responsive: false,
+          cutout: '62%',
+          animation: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } }
+        }
+      });
+    }
+    function hideAmountTip() {
+      amountTipOpen.value = false;
+      if (amountTipChartInstance) { amountTipChartInstance.destroy(); amountTipChartInstance = null; }
+    }
+    // 已/将到期合同数卡片：构成明细悬浮气泡（项目合同 / 资产合同）
+    const expiringTipOpen = ref(false);
+    const expiringTipChart = ref(null);
+    let expiringTipChartInstance = null;
+    const expiringBreakdown = computed(() => {
+      const p = Number(store.dashboard.expiring_project_count) || 0;
+      const a = Number(store.dashboard.expiring_asset_count) || 0;
+      const t = p + a;
+      const pct = (n) => (t > 0 ? Math.round(n / t * 100) : 0);
+      return { project: p, asset: a, projectRaw: p, assetRaw: a, total: t, projectPct: pct(p), assetPct: pct(a) };
+    });
+    async function showExpiringTip() {
+      expiringTipOpen.value = true;
+      await nextTick();
+      const cv = expiringTipChart.value;
+      if (!cv) return;
+      if (expiringTipChartInstance) { expiringTipChartInstance.destroy(); expiringTipChartInstance = null; }
+      const b = expiringBreakdown.value;
+      expiringTipChartInstance = new Chart(cv.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: ['项目合同', '资产合同'],
+          datasets: [{ data: [b.projectRaw, b.assetRaw], backgroundColor: ['#1E90FF', '#7CB342'], borderWidth: 0 }]
+        },
+        options: {
+          responsive: false,
+          cutout: '62%',
+          animation: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } }
+        }
+      });
+    }
+    function hideExpiringTip() {
+      expiringTipOpen.value = false;
+      if (expiringTipChartInstance) { expiringTipChartInstance.destroy(); expiringTipChartInstance = null; }
+    }
+    // 待收/支合同数 卡片：待收（资产租金未收齐差额）/ 待支（原待支付项目口径）
+    const pendingCountTipOpen = ref(false);
+    const pendingCountTipChart = ref(null);
+    let pendingCountTipChartInstance = null;
+    const pendingCountBreakdown = computed(() => {
+      const r = Number(store.dashboard.pending_receivable_count) || 0;
+      const p = Number(store.dashboard.pending_project_count) || 0;
+      const t = r + p;
+      const pct = (n) => (t > 0 ? Math.round(n / t * 100) : 0);
+      return { receivable: r, payable: p, total: t, receivablePct: pct(r), payablePct: pct(p) };
+    });
+    async function showPendingCountTip() {
+      pendingCountTipOpen.value = true;
+      await nextTick();
+      const cv = pendingCountTipChart.value;
+      if (!cv) return;
+      if (pendingCountTipChartInstance) { pendingCountTipChartInstance.destroy(); pendingCountTipChartInstance = null; }
+      const b = pendingCountBreakdown.value;
+      pendingCountTipChartInstance = new Chart(cv.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: ['待收合同数', '待支合同数'],
+          datasets: [{ data: [Math.max(0, b.receivable), Math.max(0, b.payable)], backgroundColor: ['#7CB342', '#1E90FF'], borderWidth: 0 }]
+        },
+        options: { responsive: false, cutout: '62%', animation: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+      });
+    }
+    function hidePendingCountTip() {
+      pendingCountTipOpen.value = false;
+      if (pendingCountTipChartInstance) { pendingCountTipChartInstance.destroy(); pendingCountTipChartInstance = null; }
+    }
+    // 待收/支总金额 卡片：金额单位统一为万元（待收 = 差额合计元 ÷ 10000）
+    const pendingAmountTipOpen = ref(false);
+    const pendingAmountTipChart = ref(null);
+    let pendingAmountTipChartInstance = null;
+    const pendingAmountBreakdown = computed(() => {
+      const r = Number(store.dashboard.pending_receivable_amount) || 0;
+      const p = Number(store.dashboard.unpaid_amount_total) || 0;
+      const t = r + p;
+      const pct = (n) => (t > 0 ? Math.round(n / t * 100) : 0);
+      return { receivable: r, payable: p, total: t, receivablePct: pct(r), payablePct: pct(p) };
+    });
+    async function showPendingAmountTip() {
+      pendingAmountTipOpen.value = true;
+      await nextTick();
+      const cv = pendingAmountTipChart.value;
+      if (!cv) return;
+      if (pendingAmountTipChartInstance) { pendingAmountTipChartInstance.destroy(); pendingAmountTipChartInstance = null; }
+      const b = pendingAmountBreakdown.value;
+      pendingAmountTipChartInstance = new Chart(cv.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: ['待收金额', '待支金额'],
+          datasets: [{ data: [Math.max(0, b.receivable), Math.max(0, b.payable)], backgroundColor: ['#7CB342', '#1E90FF'], borderWidth: 0 }]
+        },
+        options: { responsive: false, cutout: '62%', animation: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+      });
+    }
+    function hidePendingAmountTip() {
+      pendingAmountTipOpen.value = false;
+      if (pendingAmountTipChartInstance) { pendingAmountTipChartInstance.destroy(); pendingAmountTipChartInstance = null; }
+    }
+    // 资产合同查询统计
+    const assetStatsType = ref('by_dept');
+    const assetStatsUnit = ref('');
+    const assetStatsDept = ref('');
+    const assetStatsPerson = ref('');
+    const assetStatsStartDate = ref('');
+    const assetStatsEndDate = ref('');
+    const assetStatsData = ref([]);
+    const assetStatsChart1 = ref(null);
+    const assetStatsChart2 = ref(null);
+    const assetChartType = ref('bar');
+    const assetChartType2 = ref('bar');
+    let assetChart1Instance = null, assetChart2Instance = null;
     const userModalOpen = ref(false);
     const userEditIndex = ref(null);
     const userSaving = ref(false);
-    const userForm = reactive({ username: '', name: '', department: '', role: '普通用户', managedDepartments: [] });
+    const userForm = reactive({ username: '', name: '', phone: '', department: '', role: '普通用户', managedDepartments: [] });
     const isLeadershipDept = (dept) => ['局领导', '主任班子', '中心班子'].includes(String(dept || '').split('-').pop());
-    const deptShortName = (name) => { const s = String(name || ''); const p = '湘潭市机关事务管理局'; return s.startsWith(p) ? '局' + s.slice(p.length) : s; };
+    // 部门名显示简化：“湘潭市机关事务管理局本级”→局本级；其余去掉“湘潭市机关事务管理局”前缀，只留剩余部分
+    const ORG_PREFIX = '湘潭市机关事务管理局';
+    const deptShortName = (name) => {
+      const s = String(name == null ? '' : name).trim();
+      if (!s) return '';
+      if (s.startsWith(ORG_PREFIX + '本级')) return '局本级' + s.slice(ORG_PREFIX.length + 2);
+      return s.startsWith(ORG_PREFIX) ? (s.slice(ORG_PREFIX.length) || s) : s;
+    };
+    // 统计结果表：列名含“部门”的列按统一规则简化显示（部门 / 管理部门），其余原样
+    const statsCell = (h, v) => (String(h || '').indexOf('部门') >= 0
+      ? (deptShortName(v) || '-')
+      : (v === null || v === undefined ? '' : v));
     const managedDisplay = (val) => { const arr = String(val || '').split(/[、,;；]/).map(s => s.trim()).filter(Boolean); return arr.length ? arr.map(deptShortName).join('、') : '-'; };
     const selfForm = reactive({ new_username: '', old_password: '', new_password: '', confirm_password: '' });
     const selfSaving = ref(false);
@@ -864,6 +1609,32 @@ const app = createApp({
     const settingsLogDays = ref(90);
     const settingsAttachMb = ref(20);
     const settingsSaving = ref(false);
+    // ── 短信提醒状态 ──
+    const smsCfg = reactive({ enabled:false, base_url:'', access_key:'', secret_key:'',
+      weekly_enabled:true, weekday:1, hour:9, minute:0, max_per_run:200, receipt_token:'', timeout:10,
+      include_sign:false, segment_len:70, max_segments:3, block_check:true, block_words:'',
+      sign_suffix:'（湘潭市机关事务管理局）',
+      daily_per_phone:100, min_interval_sec:30, last_run_at:'' });
+    const smsSaving = ref(false), smsRunning = ref(false);
+    const smsTemplates = ref([]), smsLogs = ref([]);
+    const smsLogFilter = reactive({ scene:'', status:'', q:'' });
+    // 短信发送记录分页（口径与「操作日志（审计）」一致）
+    const smsLogsTotal = ref(0), smsLogsPage = ref(1), smsLogsPageSize = ref(20);
+    const smsLogsMaxPage = computed(() => Math.max(1, Math.ceil(smsLogsTotal.value / smsLogsPageSize.value)));
+    const smsLogsPages = computed(() => {
+      const mp = smsLogsMaxPage.value, cp = smsLogsPage.value, arr = [];
+      if (mp <= 7) { for (let i = 1; i <= mp; i++) arr.push(i); return arr; }
+      const set = new Set([1, mp, cp - 1, cp, cp + 1]);
+      [...set].filter(p => p >= 1 && p <= mp).sort((a, b) => a - b).forEach((p, i, a) => { if (i && p - a[i - 1] > 1) arr.push('...'); arr.push(p); });
+      return arr;
+    });
+    const smsModalOpen = ref(false), smsScene = ref('urge'), smsNote = ref(''), smsContent = ref(''), smsPhones = ref('');
+    const smsRecipients = ref([]), smsSending = ref(false), smsResultMsg = ref(''), smsResultOk = ref(true), smsSwitchOn = ref(true);
+    const smsTesting = ref(false), smsTestResult = ref(null);
+    const smsChecked = ref([]), smsResending = ref(false);
+    const smsResultBlocked = ref([]);
+    const smsTarget = reactive({ kind:'', id:'' });
+    const smsFree = ref(false);
     const importFileInput = ref(null);
 const importPreviewOpen = ref(false);
 const importPreviewItems = ref([]);
@@ -890,6 +1661,11 @@ const importErrorMsg = ref('');
       if (v === undefined || v === null || v === 0) return '0.00';
       return Number(v).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     });
+    const pendingTotalAmountDisplay = computed(() => {
+      const v = store.dashboard.pending_total_amount;
+      if (v === undefined || v === null || v === 0) return '0.00';
+      return Number(v).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    });
     function fmtMoney(v) {
       if (v === undefined || v === null || v === '') return '0.00';
       return Number(v).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -903,6 +1679,8 @@ const importErrorMsg = ref('');
       if (!statsUnit.value) return allDepts.value.map(d => d.dept);
       return allDepts.value.filter(d => d.unit === statsUnit.value).map(d => d.dept);
     });
+    // 资产合同台账“管理部门”下拉项：与项目合同台账部门口径一致（单位名称-科室名称）
+    const deptOptions = computed(() => allDepts.value.map(d => d.display || (d.unit + '-' + d.dept)).filter(x => x));
     const contractMaxPage = computed(() => Math.max(1, Math.ceil(contractTotal.value / contractPageSize.value)));
     const contractPages = computed(() => {
       const mp = contractMaxPage.value;
@@ -921,6 +1699,18 @@ const importErrorMsg = ref('');
     const statsTableHeaders = computed(() => {
       if (statsData.value.length === 0) return [];
       return Object.keys(statsData.value[0]);
+    });
+    const assetStatsFilteredDepts = computed(() => {
+      if (!assetStatsUnit.value) return allDepts.value.map(d => d.dept);
+      return allDepts.value.filter(d => d.unit === assetStatsUnit.value).map(d => d.dept);
+    });
+    const assetStatsTableHeaders = computed(() => {
+      if (assetStatsData.value.length === 0) return [];
+      // 固定列顺序：维度列在前，指标列随后（接口 JSON 键序会被字母排序，故在此显式排序）
+      const order = ['管理部门', '责任人', '时间', '资产数', '面积合计(㎡)', '年租金合计(元)', '已缴租金合计(元)'];
+      const keys = Object.keys(assetStatsData.value[0]);
+      return order.filter(k => keys.indexOf(k) !== -1)
+                  .concat(keys.filter(k => order.indexOf(k) === -1));
     });
 
     function logoError(e) {
@@ -954,6 +1744,474 @@ const importErrorMsg = ref('');
       confirm.needReason = !!(opts && opts.needReason); confirm.reason = (opts && opts.reason) || ''; confirm.reasonError = '';
     }
 
+    // ══════════════ 资产合同台账（asset_contracts）══════════════
+    const assetSearchOpen = ref(true);
+    const assetSearch = reactive({ place: '', asset_name: '', tenant: '', seq: '', lease_end_start: '', lease_end_end: '', dept: '', person: '', archived: '' });
+    const assetItems = ref([]);
+    const assetTotal = ref(0);
+    const assetPage = ref(1);
+    const assetPageSize = ref(20);
+    const assetPlaces = ref([]);
+    const assetMaxPage = computed(() => Math.max(1, Math.ceil(assetTotal.value / assetPageSize.value)));
+    const assetPages = computed(() => {
+      const mp = assetMaxPage.value;
+      if (mp <= 7) return Array.from({ length: mp }, (_, i) => i + 1);
+      const cp = assetPage.value;
+      if (cp <= 4) return [1, 2, 3, 4, 5, '...', mp];
+      if (cp >= mp - 3) return [1, '...', mp - 4, mp - 3, mp - 2, mp - 1, mp];
+      return [1, '...', cp - 1, cp, cp + 1, '...', mp];
+    });
+    const canEditAsset = computed(() => !!store.user && store.user.role !== '查询用户');
+    const assetModalOpen = ref(false);
+    const assetEditId = ref(null);
+    const assetArchived = ref(false);
+    const assetSaving = ref(false);
+    const assetDefaultForm = {
+      number: '', place: '', seq: '', asset_name: '', tenant: '', phone: '', area: '', lease_start: '', lease_end: '',
+      dept: '', person: '',
+      deposit: '', annual_rent: '', quarter_rent: '',
+      remark: '',
+      next_lease_date: '', total_amount: '', remind_days: ''
+    };
+    const assetForm = reactive({ ...assetDefaultForm });
+    const assetErrors = reactive({});
+    // 资产合同编号（写入 asset_contracts.id）：打开弹窗即按《合同编号规则》自动生成并锁定（不可修改）
+    const assetNumberAuto = ref(false);
+    async function refreshAssetNumber() {
+      if (assetEditId.value) return;
+      try {
+        const q = assetForm.dept ? ('&dept=' + encodeURIComponent(assetForm.dept)) : '';
+        const res = await api('GET', '/contract_number/next?kind=asset' + q);
+        if (res && res.number) {
+          assetForm.number = res.number;
+          assetNumberAuto.value = true;
+          delete assetErrors.number;
+        } else {
+          if (assetNumberAuto.value) { assetForm.number = ''; }
+          assetNumberAuto.value = false;
+        }
+      } catch (e) { assetNumberAuto.value = false; }
+    }
+    function onAssetDeptChange() { refreshAssetNumber(); }
+    // 资产合同附件（决策依据附件 / 合同附件）
+    const assetAttachTypes = [
+      { key: 'condition', label: '资产现状图片', accept: '.jpg,.jpeg,.png,.gif,.webp,.bmp,image/*' },
+      { key: 'decision', label: '决策依据附件', accept: '.jpg,.jpeg,.png,.gif,.webp,.bmp,.pdf,image/*' },
+      { key: 'contract', label: '合同附件', accept: '.jpg,.jpeg,.png,.gif,.webp,.bmp,.pdf,image/*' }
+    ];
+    const assetAttachments = reactive({ condition: [], decision: [], contract: [] });
+    // 租金收取明细（子表 asset_rent_collections）：弹窗内的草稿行，点“保存”时整表提交
+    const assetRentRows = ref([]);
+    // 缴款方式枚举（与后端 ASSET_RENT_PAY_METHODS 一致）
+    const assetRentPayMethods = ['直缴非税', '现金', '微信', '其他'];
+    const assetRentLoaded = ref(true);        // 明细是否已成功加载（新增态默认可提交空明细）
+    const assetRentLoadedCount = ref(0);      // 加载到的原有记录数（用于“清空需显式确认”）
+    let assetRentKeySeq = 1;
+    const assetRentEditable = computed(() => canEditAsset.value && !assetArchived.value);
+    const assetRentTotals = computed(() => {
+      let due = 0, paid = 0;
+      assetRentRows.value.forEach(r => { due += Number(r.due_amount) || 0; paid += Number(r.paid_amount) || 0; });
+      due = Math.round(due * 100) / 100; paid = Math.round(paid * 100) / 100;
+      return { due: due, paid: paid, diff: Math.round((due - paid) * 100) / 100 };
+    });
+    function _assetRentRow(src) {
+      const r = src || {};
+      const row = {
+        _key: 'rr' + (assetRentKeySeq++), _edit: !r.id, _err: {}, id: r.id || null,
+        period_label: r.period_label || '', period_start: r.period_start || '', period_end: r.period_end || '',
+        due_amount: (r.due_amount === '' || r.due_amount === null || r.due_amount === undefined) ? '' : String(r.due_amount),
+        paid_amount: (r.paid_amount === '' || r.paid_amount === null || r.paid_amount === undefined) ? '' : String(r.paid_amount),
+        pay_date: r.pay_date || '', pay_method: r.pay_method || '', payee: r.payee || ''
+      };
+      row._snapshot = _assetRentSnapshot(row);   // 取消编辑时回滚用
+      return row;
+    }
+    function _assetRentSnapshot(r) {
+      const o = {};
+      ['period_label', 'period_start', 'period_end', 'due_amount', 'paid_amount', 'pay_date', 'pay_method', 'payee'].forEach(k => o[k] = r[k]);
+      return o;
+    }
+    function addAssetRentRow() {
+      if (!assetRentEditable.value) return;
+      const r = _assetRentRow(null);
+      r.pay_method = '直缴非税';           // 新增记录默认选中“直缴非税”
+      r.payee = (store.user && store.user.name) || (store.user && store.user.username) || '';
+      assetRentRows.value.push(r);
+    }
+    function editAssetRentRow(i) {
+      if (!assetRentEditable.value) return;
+      assetRentRows.value[i]._edit = true;
+      assetRentRows.value[i]._err = {};
+    }
+    function _assetRentValidate(r) {
+      const err = {};
+      if (!String(r.period_label || '').trim()) err.period_label = '收款期次不能为空';
+      const due = String(r.due_amount === null || r.due_amount === undefined ? '' : r.due_amount).trim();
+      if (due === '') err.due_amount = '应缴金额不能为空';
+      else { const n = Number(due); if (isNaN(n)) err.due_amount = '应缴金额应为数字'; else if (n < 0) err.due_amount = '应缴金额不能为负数'; }
+      const paid = String(r.paid_amount === null || r.paid_amount === undefined ? '' : r.paid_amount).trim();
+      if (paid !== '') { const n = Number(paid); if (isNaN(n)) err.paid_amount = '实缴金额应为数字'; else if (n < 0) err.paid_amount = '实缴金额不能为负数'; }
+      [['period_start', '所属租期开始日'], ['period_end', '所属租期结束日'], ['pay_date', '缴款日期']].forEach(([k, label]) => {
+        const s = String(r[k] || '').trim();
+        if (s && !/^\d{4}-\d{2}-\d{2}$/.test(s)) err[k] = label + '格式应为 yyyy-MM-dd';
+      });
+      r._err = err;
+      return Object.keys(err).length === 0;
+    }
+    function confirmAssetRentRow(i) {
+      const r = assetRentRows.value[i];
+      if (!r) return;
+      if (!_assetRentValidate(r)) { toast('请检查该行租金记录（标红字段）', 'error'); return; }
+      r._snapshot = _assetRentSnapshot(r);
+      r._edit = false;
+      r._err = {};
+    }
+    function cancelAssetRentRow(i) {
+      const r = assetRentRows.value[i];
+      if (!r) return;
+      if (!r.id) { assetRentRows.value.splice(i, 1); return; }   // 未保存的新增行：直接移除
+      Object.assign(r, r._snapshot || {});                        // 已有记录：还原为进入编辑前
+      r._edit = false; r._err = {};
+    }
+    function removeAssetRentRow(i) {
+      if (!assetRentEditable.value) return;
+      const r = assetRentRows.value[i];
+      if (!r) return;
+      showConfirm('删除租金记录', '确定删除收款期次为“' + (r.period_label || '未填写') + '”的租金收取记录？点击“保存”后生效。',
+        () => { assetRentRows.value.splice(i, 1); confirm.show = false; }, '确认删除');
+    }
+    function _assetRentPayload() {
+      return assetRentRows.value.map(r => ({
+        id: r.id || null, period_label: String(r.period_label || '').trim(),
+        period_start: r.period_start || '', period_end: r.period_end || '',
+        due_amount: r.due_amount === '' ? '' : r.due_amount,
+        paid_amount: r.paid_amount === '' ? '' : r.paid_amount,
+        pay_date: r.pay_date || '', pay_method: String(r.pay_method || '').trim(), payee: String(r.payee || '').trim()
+      }));
+    }
+    function _assetRentValidateAll() {
+      let bad = -1;
+      assetRentRows.value.forEach((r, i) => {
+        const ok = _assetRentValidate(r);
+        if (!ok) { r._edit = true; if (bad < 0) bad = i; }
+      });
+      return bad;
+    }
+    // 租期（年）：由“租期开始日 ~ 租期结束日”自动推算，用于总合同额自动计算
+    const assetLeaseTerm = computed(() => {
+      const ok = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '').trim());
+      const s = String(assetForm.lease_start || '').trim();
+      const e = String(assetForm.lease_end || '').trim();
+      if (!ok(s) || !ok(e)) return { years: 0, text: '' };
+      const days = Math.round((new Date(e + 'T00:00:00') - new Date(s + 'T00:00:00')) / 86400000) + 1;
+      if (!isFinite(days) || days <= 0) return { years: 0, text: '' };
+      const years = Math.round(days / 365.25 * 100) / 100;
+      return { years, text: parseFloat(years.toFixed(2)) + ' 年' };
+    });
+    const assetLeaseTermText = computed(() => assetLeaseTerm.value.text);
+    const assetImportFileInput = ref(null);
+    const pendingAssetFile = ref(null);
+    const assetImportPreviewOpen = ref(false);
+    const assetImportMode = ref('preview');
+    const assetImportItems = ref([]);
+    const assetImportSummary = ref({ total: 0, ok: 0, error: 0 });
+    const assetImportResult = ref({ added: 0, skipped: [] });
+    const assetImporting = ref(false);
+
+    function assetMoney(v) {
+      if (v === '' || v === null || v === undefined) return '';
+      const n = Number(v);
+      return isNaN(n) ? '' : n.toFixed(2);
+    }
+
+    async function loadAssets() {
+      try {
+        const params = new URLSearchParams();
+        params.set('page', assetPage.value); params.set('page_size', assetPageSize.value);
+        Object.entries(assetSearch).forEach(([k, v]) => { if (v !== '' && v !== null && v !== undefined) params.set(k, v); });
+        const data = await api('GET', '/asset_contracts?' + params.toString());
+        if (data.total > 0 && assetPage.value > Math.max(1, Math.ceil(data.total / data.page_size))) {
+          assetPage.value = Math.max(1, Math.ceil(data.total / data.page_size));
+          return loadAssets();
+        }
+        assetItems.value = data.items || [];
+        assetTotal.value = data.total || 0;
+        if (data.places) assetPlaces.value = data.places;
+      } catch (e) { toast(e.message, 'error'); }
+    }
+    function searchAssets() { assetPage.value = 1; loadAssets(); }
+    function resetAssetSearch() { Object.keys(assetSearch).forEach(k => assetSearch[k] = ''); assetPage.value = 1; loadAssets(); }
+
+    // 总合同额自动计算：年租金（元）× 租期年数（租期由租期起止日推算）；自动填充后可手动修改
+    function autoCalcAssetTotal() {
+      const rent = Number(assetForm.annual_rent);
+      const years = assetLeaseTerm.value.years;
+      if (!isFinite(rent) || rent <= 0 || !years) return;
+      assetForm.total_amount = Math.round(rent * years * 100) / 100;
+    }
+
+    // 下次出租时间默认 = 租期结束日 + 1 天（可手动修改）
+    function onAssetLeaseEndChange() {
+      const e = String(assetForm.lease_end || '').trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(e)) {
+        const d = new Date(e + 'T00:00:00');
+        d.setDate(d.getDate() + 1);
+        const p2 = (n) => String(n).padStart(2, '0');
+        assetForm.next_lease_date = d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+      }
+      autoCalcAssetTotal();
+    }
+
+    function onAssetAttachSelect(type, e) {
+      const files = Array.from(e.target.files || []);
+      e.target.value = '';
+      for (const f of files) {
+        const ext = (f.name.split('.').pop() || '').toLowerCase();
+        if (ATTACH_ALLOWED.indexOf('.' + ext) === -1) { toast('仅支持图片或PDF格式（jpg/jpeg/png/gif/webp/bmp/pdf）', 'error'); continue; }
+        const maxMb = store.config.default_attach_max_mb || 20;
+        if (f.size > maxMb * 1024 * 1024) { toast('附件大小不能超过 ' + maxMb + 'M', 'error'); continue; }
+        assetAttachments[type].push({ display_name: f.name, file: f, size: formatSize(f.size) });
+      }
+    }
+
+    async function removeAssetAttachment(type, idx) {
+      const a = assetAttachments[type][idx];
+      if (!a) return;
+      if (a.id) {
+        try { await api('DELETE', '/asset_attachments/' + a.id); toast('附件已移除', 'success'); }
+        catch (e) { toast(e.message, 'error'); return; }
+      }
+      assetAttachments[type].splice(idx, 1);
+    }
+
+    async function apiUploadAsset(cid, type, file) {
+      globalLoading.value = true;
+      try {
+        const fd = new FormData();
+        fd.append('type', type);
+        fd.append('file', file);
+        const res = await fetch(apiBase + '/asset_contracts/' + cid + '/attachments', { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || '附件上传失败');
+        return data;
+      } finally { globalLoading.value = false; }
+    }
+
+    async function openAssetModal(a) {
+      Object.keys(assetErrors).forEach(k => delete assetErrors[k]);
+      assetArchived.value = !!(a && a.archived);
+      Object.keys(assetAttachments).forEach(k => assetAttachments[k] = []);
+      assetRentRows.value = [];
+      assetRentLoaded.value = !(a && a.id);
+      assetRentLoadedCount.value = 0;
+      if (a) {
+        assetEditId.value = a.id;
+        Object.keys(assetDefaultForm).forEach(k => { assetForm[k] = (a[k] === null || a[k] === undefined) ? '' : a[k]; });
+        assetForm.number = (a._row === null || a._row === undefined) ? '' : String(a._row);
+        (a.attachments || []).forEach(x => {
+          const t = x.type || '';
+          if (assetAttachments[t]) assetAttachments[t].push({ id: x.id, display_name: x.display_name, size: x.size, type_label: x.type_label });
+        });
+      } else {
+        assetEditId.value = null;
+        Object.keys(assetDefaultForm).forEach(k => { assetForm[k] = ''; });
+        assetForm.remind_days = store.config.default_remind_days || 60;
+      }
+      assetNumberAuto.value = false;
+      if (!assetEditId.value) refreshAssetNumber();
+      assetModalOpen.value = true;
+      if (a && a.id) {
+        if (a.rent_collections) {
+          // 详情入口（如首页提醒）已带子表，直接使用，避免二次请求
+          assetRentRows.value = (a.rent_collections || []).map(x => _assetRentRow(x));
+          assetRentLoadedCount.value = assetRentRows.value.length;
+          assetRentLoaded.value = true;
+        } else {
+          // 列表接口不含子表：从详情接口补齐子表（含附件）
+          try {
+            const d = await api('GET', '/asset_contracts/' + a.id);
+            Object.keys(assetDefaultForm).forEach(k => { assetForm[k] = (d[k] === null || d[k] === undefined) ? '' : d[k]; });
+            assetForm.number = (d._row === null || d._row === undefined) ? '' : String(d._row);
+            Object.keys(assetAttachments).forEach(k => assetAttachments[k] = []);
+            (d.attachments || []).forEach(x => {
+              const t = x.type || '';
+              if (assetAttachments[t]) assetAttachments[t].push({ id: x.id, display_name: x.display_name, size: x.size, type_label: x.type_label });
+            });
+            assetArchived.value = !!d.archived;
+            assetRentRows.value = (d.rent_collections || []).map(x => _assetRentRow(x));
+            assetRentLoadedCount.value = assetRentRows.value.length;
+            assetRentLoaded.value = true;
+          } catch (e) { toast(e.message, 'error'); }
+        }
+      }
+    }
+
+    function _assetValidate() {
+      Object.keys(assetErrors).forEach(k => delete assetErrors[k]);
+      ['place', 'asset_name', 'tenant'].forEach(k => { if (!String(assetForm[k] || '').trim()) assetErrors[k] = '必填项不能为空'; });
+      const numMap = {
+        area: '面积（㎡）', deposit: '押金（元）', annual_rent: '年租金（元）', quarter_rent: '季租（元）',
+        total_amount: '总合同额'
+      };
+      Object.entries(numMap).forEach(([k, label]) => {
+        const v = assetForm[k];
+        if (v === '' || v === null || v === undefined) return;
+        const n = Number(v);
+        if (isNaN(n)) assetErrors[k] = label + '应为数字';
+        else if (n < 0) assetErrors[k] = label + '不能为负数';
+      });
+      const dateMap = {
+        lease_start: '租期开始日', lease_end: '租期结束日', next_lease_date: '下次出租时间'
+      };
+      Object.entries(dateMap).forEach(([k, label]) => {
+        const v = String(assetForm[k] || '').trim();
+        if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) assetErrors[k] = label + '格式应为 yyyy-mm-dd';
+      });
+      const sq = String(assetForm.seq || '').trim();
+      if (sq && !/^-?\d+$/.test(sq)) assetErrors.seq = '序号应为整数';
+      const rd = String(assetForm.remind_days === null || assetForm.remind_days === undefined ? '' : assetForm.remind_days).trim();
+      if (rd) {
+        const n = Number(rd);
+        if (!/^\d+$/.test(rd) || isNaN(n)) assetErrors.remind_days = '提醒提前天数应为整数';
+        else if (n < 1 || n > 365) assetErrors.remind_days = '提醒提前天数应在 1-365 之间';
+      }
+      if (!assetEditId.value && !String(assetForm.number || '').trim()) {
+        // 新增态编号由规则自动生成并锁定，不允许手工填写
+        assetErrors.number = assetNumberAuto.value
+          ? '编号生成中，请稍后重试'
+          : '当前科室（中心）未配置合同编号规则，无法生成编号';
+      }
+      return Object.keys(assetErrors).length === 0;
+    }
+
+    async function saveAsset() {
+      if (!_assetValidate()) { toast('请检查表单填写（标红字段）', 'error'); return; }
+      const badRent = _assetRentValidateAll();
+      if (badRent >= 0) { toast('请检查租金收取明细第 ' + (badRent + 1) + ' 行（标红字段）', 'error'); return; }
+      if (!assetRentLoaded.value) { toast('租金收取明细未加载成功，请关闭弹窗后重新打开再保存', 'error'); return; }
+      assetSaving.value = true;
+      try {
+        const payload = { ...assetForm, number: assetNumberAuto.value ? '' : String(assetForm.number || '').trim() };
+        let cid = assetEditId.value;
+        if (cid) { await api('PUT', '/asset_contracts/' + cid, payload); toast('资产合同更新成功', 'success'); }
+        else {
+          const res = await api('POST', '/asset_contracts', payload);
+          cid = res.id;
+          toast('资产合同新增成功' + (res.number ? '，编号 ' + res.number : ''), 'success');
+        }
+        // 租金收取明细（子表）：按合同 id 整表提交（新增/修改/删除一次完成；新增态此时才拿到主表 id）
+        const rentItems = _assetRentPayload();
+        const rentBody = { items: rentItems };
+        if (rentItems.length === 0 && assetRentLoadedCount.value > 0) rentBody.confirm_clear = true;  // 用户在本弹窗内删除了全部记录
+        const rentRes = await api('PUT', '/asset_contracts/' + cid + '/rent_collections', rentBody);
+        if (rentRes && rentRes.items) {
+          assetRentRows.value = rentRes.items.map(x => _assetRentRow(x));
+          assetRentLoadedCount.value = assetRentRows.value.length;
+          assetRentLoaded.value = true;
+        }
+        // 附件：先保存合同拿到 id，再上传本次新增的附件（与项目合同台账一致）
+        for (const at of assetAttachTypes) {
+          for (const a of assetAttachments[at.key]) {
+            if (a.file) { const up = await apiUploadAsset(cid, at.key, a.file); a.id = up.attachment.id; a.file = null; a.type_label = up.attachment.type_label; }
+          }
+        }
+        assetModalOpen.value = false;
+        await loadAssets();
+      } catch (e) { toast(e.message, 'error'); }
+      assetSaving.value = false;
+    }
+
+    function confirmDeleteAsset(a) {
+      const rc = Number(a.rent_count) || 0;
+      const rentTip = rc ? '该合同下有 ' + rc + ' 条租金收取记录，将随合同一并删除。' : '';
+      showConfirm('删除确认', '确定删除资产合同 "' + (a.asset_name || '') + '" ？' + rentTip + '此操作不可恢复。', async () => {
+        confirm.loading = true;
+        try {
+          await api('DELETE', '/asset_contracts/' + a.id, { reason: confirm.reason, delete_rent: rc > 0 });
+          toast('资产合同已删除', 'success');
+          await loadAssets();
+        } catch (e) { toast(e.message, 'error'); await loadAssets(); }
+        confirm.show = false;
+      }, '确认删除', { needReason: true });
+    }
+
+    function canArchiveAsset(a) {
+      if (!store.user || store.user.role === '查询用户') return false;
+      if (a && a.archived) return false;
+      if (store.user.role === '管理员') return true;
+      const ps = ((a && a.person) || '').replace(/、/g, ',').split(',').map(s => s.trim()).filter(Boolean);
+      return ps.indexOf(store.user.name) !== -1;
+    }
+
+    function confirmArchiveAsset(a) {
+      showConfirm('归档确认', '确定将资产合同 "' + (a.asset_name || '') + '" 归档？归档后该合同进入只读状态，所有用户仅可浏览，不可再编辑、删除或修改。', async () => {
+        confirm.loading = true;
+        try { await api('PUT', '/asset_contracts/' + a.id + '/archive'); toast('资产合同已归档', 'success'); await loadAssets(); }
+        catch (e) { toast(e.message, 'error'); }
+        confirm.show = false;
+      }, '确认归档');
+    }
+    async function exportAssets() {
+      try {
+        const params = new URLSearchParams();
+        Object.entries(assetSearch).forEach(([k, v]) => { if (v !== '' && v !== null && v !== undefined) params.set(k, v); });
+        const res = await fetch(apiBase + '/asset_contracts/export?' + params.toString(), { credentials: 'include' });
+        if (!res.ok) { toast('导出失败', 'error'); return; }
+        const blob = await res.blob(); const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = '资产合同台账_export.xlsx';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        toast('导出成功', 'success');
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function downloadAssetTemplate() {
+      try {
+        const res = await fetch(apiBase + '/asset_contracts/template', { credentials: 'include' });
+        if (!res.ok) { toast('模板下载失败', 'error'); return; }
+        const blob = await res.blob(); const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = '资产合同台账导入模板.xlsx';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        toast('模板已下载', 'success');
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function importAssets(ev) {
+      const file = ev.target.files && ev.target.files[0];
+      ev.target.value = '';
+      if (!file) return;
+      if (!/\.(xlsx|xlsm)$/i.test(file.name)) { toast('仅支持 .xlsx 格式文件，请选择有效的 xlsx 文件', 'error'); return; }
+      pendingAssetFile.value = file;
+      globalLoading.value = true;
+      try {
+        const fd = new FormData(); fd.append('file', file);
+        const res = await fetch(apiBase + '/asset_contracts/import/preview', { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || '导入预览失败');
+        assetImportItems.value = data.items || [];
+        assetImportSummary.value = { total: data.total || 0, ok: data.ok || 0, error: data.error || 0 };
+        assetImportMode.value = 'preview';
+        assetImportPreviewOpen.value = true;
+      } catch (e) { toast(e.message, 'error'); }
+      finally { globalLoading.value = false; }
+    }
+
+    async function confirmAssetImport() {
+      const file = pendingAssetFile.value;
+      if (!file) return;
+      assetImporting.value = true;
+      try {
+        const fd = new FormData(); fd.append('file', file);
+        const res = await fetch(apiBase + '/asset_contracts/import', { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || '导入失败');
+        assetImportResult.value = { added: data.added || 0, skipped: data.skipped || [] };
+        assetImportMode.value = 'result';
+        toast(data.message || '导入完成', 'success');
+        await loadAssets();
+      } catch (e) { toast(e.message, 'error'); }
+      assetImporting.value = false;
+    }
+
     async function doLogin() {
       if (!loginForm.username || !loginForm.password) { loginError.value = '请输入用户名和密码'; return; }
       loginError.value = ''; loginLoading.value = true;
@@ -974,12 +2232,21 @@ const importErrorMsg = ref('');
     async function fetchDashboard() { try { const d = await api('GET', '/dashboard'); store.dashboard = d; } catch (e) {} }
     async function fetchReminders() { try { const d = await api('GET', '/reminders'); store.reminders = d.items || []; store.dashboard.expiring_contracts = d.count || 0; reminderLimit.value = 3; } catch (e) {} }
     async function fetchPendingPayments() { try { const d = await api('GET', '/pending_payments'); store.pendingPayments = d.items || []; pendingLimit.value = 2; } catch (e) {} }
-    async function loadConfig() { try { const d = await api('GET', '/config'); store.config = d; settingsDays.value = d.default_remind_days; settingsLogDays.value = d.log_keep_days || 90; settingsAttachMb.value = d.default_attach_max_mb || 20; } catch (e) {} }
+    async function loadConfig() { try { const d = await api('GET', '/config'); store.config = d; settingsDays.value = d.default_remind_days; settingsLogDays.value = d.log_keep_days || 90; settingsAttachMb.value = d.default_attach_max_mb || 20; if (d.sms) Object.assign(smsCfg, d.sms); } catch (e) {} }
     async function loadDepts() { try { const d = await api('GET', '/departments'); allDepts.value = d.items || []; deptsPage.value = 1; } catch (e) {} }
 
     function ignoreReminder(id) { ignoredReminders[id] = true; }
 
     async function permanentClose(r) {
+      if (r && r.kind === 'asset') {
+        showConfirm('永久关闭提醒', '确定清空资产合同 "' + r.name + '" 的下次出租时间？此操作不可恢复。', async () => {
+          confirm.loading = true;
+          try { await api('PUT', '/asset_contracts/' + r.id + '/clear_remind'); toast('已清空该资产合同的下次出租时间', 'success'); await fetchReminders(); await fetchDashboard(); await loadAssets(); }
+          catch (e) { toast(e.message, 'error'); }
+          confirm.show = false;
+        }, '确认关闭');
+        return;
+      }
       showConfirm('永久关闭提醒', '确定清空合同 "' + r.number + '" 的下次招采时间？此操作不可恢复。', async () => {
         confirm.loading = true;
         try { await api('PUT', '/contracts/' + r.id + '/clear_remind'); toast('已清空该合同的下次招采时间', 'success'); await fetchReminders(); await fetchDashboard(); await loadContracts(); }
@@ -1014,15 +2281,30 @@ const importErrorMsg = ref('');
     function searchLogs() { logsPage.value = 1; loadLogs(); }
     function resetLogs() { Object.keys(logsFilter).forEach(k => logsFilter[k] = ''); logsPage.value = 1; loadLogs(); }
 
+    async function loadFieldLogs() {
+      try {
+        const params = new URLSearchParams();
+        params.set('page', fieldLogsPage.value); params.set('page_size', fieldLogsPageSize.value);
+        Object.entries(fieldLogsFilter).forEach(([k, v]) => { if (v) params.set(k, v); });
+        const data = await api('GET', '/field_logs?' + params.toString());
+        fieldLogsItems.value = data.items || []; fieldLogsTotal.value = data.total || 0;
+        if (data.fields) fieldLogsFields.value = data.fields;
+      } catch (e) { toast(e.message, 'error'); }
+    }
+    function searchFieldLogs() { fieldLogsPage.value = 1; loadFieldLogs(); }
+    function resetFieldLogs() { Object.keys(fieldLogsFilter).forEach(k => fieldLogsFilter[k] = ''); fieldLogsPage.value = 1; loadFieldLogs(); }
+
     function switchView(view) {
       currentView.value = view;
       if (view === 'home') { fetchDashboard(); fetchReminders(); fetchPendingPayments(); }
       else if (view === 'contracts') { loadContracts(); loadDepts(); }
+      else if (view === 'assets') { loadAssets(); loadDepts(); }
       else if (view === 'stats') { loadDepts(); loadStats(); }
       else if (view === 'users') { loadUsers(); loadDepts(); }
       else if (view === 'depts') { loadDepts(); }
-      else if (view === 'logs') { loadLogs(); }
-      else if (view === 'settings') { loadConfig(); }
+      else if (view === 'logs') { loadLogs(); loadFieldLogs(); }
+      else if (view === 'settings') { loadConfig(); loadSmsTemplates(); }
+      else if (view === 'sms') { smsLogsPage.value = 1; loadSmsLogs(); }
     }
 
     async function loadContracts() {
@@ -1088,7 +2370,12 @@ const importErrorMsg = ref('');
 
     function validateContractForm() {
       const errs = {};
-      if (!contractForm.number || !contractForm.number.trim()) errs.number = '编号不能为空';
+      if (!contractForm.number || !String(contractForm.number).trim()) {
+        // 新增态编号由规则自动生成并锁定，不允许手工填写
+        errs.number = contractEditId.value
+          ? '编号不能为空'
+          : (contractNumberAuto.value ? '编号生成中，请稍后重试' : '当前科室（中心）未配置合同编号规则，无法生成编号');
+      }
       if (!contractForm.category) errs.category = '请选择项目分类';
       if (!contractForm.name || !contractForm.name.trim()) errs.name = '项目名称不能为空';
       if (!contractForm.procurement_method) errs.procurement_method = '请选择采购方式';
@@ -1121,7 +2408,11 @@ const importErrorMsg = ref('');
       try {
         let cid = contractEditId.value;
         if (cid) { await api('PUT', '/contracts/' + cid, { ...contractForm }); toast('合同更新成功', 'success'); }
-        else { const res = await api('POST', '/contracts', { ...contractForm }); cid = res.id; toast('合同新增成功', 'success'); }
+        else {
+          const res = await api('POST', '/contracts', { ...contractForm, number: contractNumberAuto.value ? '' : contractForm.number });
+          cid = res.id;
+          toast('合同新增成功' + (res.number ? '，编号 ' + res.number : ''), 'success');
+        }
         for (const at of attachTypes) {
           for (const a of attachments[at.key]) {
             if (a.file) { const up = await apiUpload(cid, at.key, a.file); a.id = up.attachment.id; a.file = null; a.type_label = up.attachment.type_label; }
@@ -1157,7 +2448,39 @@ const importErrorMsg = ref('');
         contractForm.remind_days = store.config.default_remind_days || 60;
         contractForm.department = store.user ? store.user.department || '' : '';
       }
+      contractNumberAuto.value = false;
+      if (!contractEditId.value) refreshContractNumber();
       contractModalOpen.value = true;
+    }
+
+    // 首页“合同到期提醒 / 待支付提醒”：点击项目名称跳转到该项目对应的“编辑合同”页面
+    async function openContractFromReminder(item) {
+      if (!item) return;
+      const cid = item.id;
+      // 资产合同提醒：跳转到资产合同的“编辑资产合同”
+      if (item.kind === 'asset' || (typeof cid === 'string' && cid.indexOf('arow_') === 0)) {
+        try {
+          const detail = await api('GET', '/asset_contracts/' + cid);
+          openAssetModal(detail);
+        } catch (e) {
+          toast(e.message || '资产合同不存在', 'error');
+          await fetchReminders(); await fetchDashboard();
+        }
+        return;
+      }
+      if (typeof cid === 'string' && cid.indexOf('row_') === 0) {
+        try {
+          const detail = await api('GET', '/contracts/' + cid);
+          openContractModal(detail);
+          return;
+        } catch (e) {
+          // 合同可能已被删除或不在当前可见范围内：提示并刷新提醒数据
+          toast(e.message || '合同不存在', 'error');
+          await fetchReminders(); await fetchPendingPayments(); await fetchDashboard();
+          return;
+        }
+      }
+      openContractModal(item);
     }
 
     function printContractPdf() {
@@ -1184,7 +2507,7 @@ const importErrorMsg = ref('');
         ['现场负责人', f.site_manager, '是否有签证或变更', f.has_change],
         ['签证或变更情况', f.change_detail, '是否结算', f.is_settled],
         ['期限', f.term, '经办人', f.handler],
-        ['所属部门', f.department, '下次招采时间', f.next_bid_date],
+        ['所属部门', deptShortName(f.department), '下次招采时间', f.next_bid_date],
         ['提醒提前天数', f.remind_days, '备注', f.remark]
       ];
       let rowsHtml = '';
@@ -1217,6 +2540,99 @@ const importErrorMsg = ref('');
         '<div class="print-body">' +
         '<div class="print-header"><h1>合同台账信息</h1><div class="sub">合同编号：' + esc(f.number) + '　|　项目名称：' + esc(f.name) + '</div></div>' +
         '<table>' + rowsHtml + '</table>' +
+        '<div class="print-foot">打印人：' + esc(who) + '　打印时间：' + now + '</div>' +
+        '</div>' + wmHtml +
+        '<script>window.addEventListener("load",function(){setTimeout(function(){try{window.focus()}catch(e){}try{window.print()}catch(e){}},350)});<\/script>' +
+        '</body></html>';
+      let w = null;
+      try { w = window.open('', '_blank'); } catch (e) { w = null; }
+      if (w && w.document) {
+        w.document.open();
+        w.document.write(doc);
+        w.document.close();
+      } else {
+        const iframe = document.createElement('iframe');
+        iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+        document.body.appendChild(iframe);
+        const idoc = iframe.contentDocument;
+        idoc.open(); idoc.write(doc); idoc.close();
+        setTimeout(() => { try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) {} }, 400);
+      }
+    }
+
+    // 资产合同：打印为 PDF（与项目合同同一套版式，另附租金收取明细）
+    function printAssetPdf() {
+      const f = assetForm;
+      const num = (v) => (v !== null && v !== undefined && v !== '') ? Number(v).toFixed(2) : '';
+      const esc = (v) => String(v === null || v === undefined ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      const d = new Date();
+      const p2 = (n) => String(n).padStart(2, '0');
+      const now = d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds());
+      const who = (store.user && (store.user.name || store.user.username)) || '';
+      const wmText = '打印人：' + esc(who) + '　打印时间：' + now;
+      const title = f.asset_name || f.place || '资产合同';
+      const items = [
+        ['资产名称', f.asset_name, '位置', f.place],
+        ['序号', f.seq, '承租人', f.tenant],
+        ['联系电话', f.phone, '责任人', f.person],
+        ['管理部门', deptShortName(f.dept), '面积（㎡）', f.area],
+        ['租期开始日', f.lease_start, '租期结束日', f.lease_end],
+        ['押金（元）', num(f.deposit), '年租金（元）', num(f.annual_rent)],
+        ['季租（元）', num(f.quarter_rent), '总合同额（元）', num(f.total_amount)],
+        ['下次出租时间', f.next_lease_date, '提醒提前天数', f.remind_days],
+        ['备注', f.remark, null, null, true]
+      ];
+      let rowsHtml = '';
+      items.forEach(r => {
+        if (r[4]) {
+          rowsHtml += '<tr><td class="lbl">' + esc(r[0]) + '</td><td colspan="3">' + esc(r[1]) + '</td></tr>';
+        } else {
+          rowsHtml += '<tr><td class="lbl">' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td><td class="lbl">' + esc(r[2]) + '</td><td>' + esc(r[3]) + '</td></tr>';
+        }
+      });
+      const rentRows = assetRentRows.value || [];
+      let rentHtml = '';
+      if (rentRows.length) {
+        const period = (r) => (r.period_start && r.period_end) ? (r.period_start + ' ~ ' + r.period_end) : (r.period_start || r.period_end || '');
+        rentHtml = '<div class="sec-title">租金收取明细</div><table><thead><tr>' +
+          '<th>收款期次</th><th>所属租期</th><th>应缴金额（元）</th><th>实缴金额（元）</th><th>缴款日期</th><th>缴款方式</th><th>收款人</th>' +
+          '</tr></thead><tbody>' +
+          rentRows.map(r => '<tr>' +
+            '<td class="c">' + esc(r.period_label) + '</td>' +
+            '<td class="c">' + esc(period(r)) + '</td>' +
+            '<td class="r">' + esc(num(r.due_amount)) + '</td>' +
+            '<td class="r">' + esc(num(r.paid_amount)) + '</td>' +
+            '<td class="c">' + esc(r.pay_date) + '</td>' +
+            '<td class="c">' + esc(r.pay_method) + '</td>' +
+            '<td class="c">' + esc(r.payee) + '</td>' +
+            '</tr>').join('') +
+          '</tbody></table>';
+      }
+      const wmPos = [[6, 14], [58, 14], [6, 42], [58, 42], [6, 70], [58, 70]];
+      let wmHtml = '';
+      wmPos.forEach(pos => { wmHtml += '<span class="wm" style="left:' + pos[0] + '%;top:' + pos[1] + '%">' + wmText + '</span>'; });
+      const doc = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>资产合同打印 - ' + esc(title) + '</title><style>' +
+        '*{box-sizing:border-box}html,body{margin:0;padding:0}' +
+        'body{font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;color:#1a2a3a;background:#fff}' +
+        '@page{size:A4;margin:10mm 11mm}' +
+        '.print-body{position:relative;width:100%}' +
+        '.wm{position:fixed;transform:rotate(-45deg);font-size:12px;color:#8a93a0;opacity:.15;white-space:nowrap;font-weight:400;z-index:9999;pointer-events:none;letter-spacing:1px}' +
+        '.print-header{text-align:center;border-bottom:2px solid #1E90FF;padding-bottom:8px;margin-bottom:10px}' +
+        '.print-header h1{font-size:18px;margin:0 0 4px;color:#0A2E5C;letter-spacing:2px}' +
+        '.print-header .sub{font-size:11.5px;color:#5a6b85}' +
+        'table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px}' +
+        'td{border:1px solid #c3cfdd;padding:4px 6px;line-height:1.45;word-break:break-all;page-break-inside:avoid}' +
+        'td.lbl{width:14%;background:#EEF4FB;font-weight:600;color:#0A2E5C;text-align:center;font-size:11px}' +
+        'td.c{text-align:center}td.r{text-align:right}' +
+        'th{border:1px solid #c3cfdd;padding:4px 6px;background:#EEF4FB;color:#0A2E5C;font-weight:600;text-align:center;font-size:10.5px}' +
+        'tr{page-break-inside:avoid}' +
+        '.sec-title{font-size:12px;font-weight:700;color:#0A2E5C;margin:12px 0 6px;padding-left:8px;border-left:3px solid #1E90FF}' +
+        '.print-foot{text-align:center;font-size:10.5px;color:#8899aa;margin-top:10px}' +
+        '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.wm{-webkit-print-color-adjust:exact;print-color-adjust:exact}}' +
+        '</style></head><body>' +
+        '<div class="print-body">' +
+        '<div class="print-header"><h1>资产合同台账信息</h1><div class="sub">资产名称：' + esc(f.asset_name) + '　|　位置：' + esc(f.place) + '</div></div>' +
+        '<table>' + rowsHtml + '</table>' + rentHtml +
         '<div class="print-foot">打印人：' + esc(who) + '　打印时间：' + now + '</div>' +
         '</div>' + wmHtml +
         '<script>window.addEventListener("load",function(){setTimeout(function(){try{window.focus()}catch(e){}try{window.print()}catch(e){}},350)});<\/script>' +
@@ -1296,7 +2712,7 @@ const importErrorMsg = ref('');
       finally { globalLoading.value = false; }
     }
     function statusText(s) { return s === 'ok' ? '通过' : s === 'warn' ? '警告' : '错误'; }
-    function statusClass(s) { return s === 'ok' ? 'badge-ok' : s === 'warn' ? 'badge-warn' : 'badge-error'; }
+    function statusClass(s) { return s === 'ok' ? 'badge-status is-ok' : s === 'warn' ? 'badge-status is-warning' : 'badge-status is-danger'; }
     async function confirmImport() {
       if (!pendingImportFile.value || importingConfirm.value) return;
       importingConfirm.value = true;
@@ -1349,6 +2765,125 @@ const importErrorMsg = ref('');
       statsEndDate.value = '';
       statsYear.value = '';
       loadStats();
+    }
+
+    async function loadAssetStats() {
+      try {
+        const params = new URLSearchParams();
+        params.set('type', assetStatsType.value);
+        if (assetStatsUnit.value) params.set('unit', assetStatsUnit.value);
+        if (assetStatsDept.value) params.set('dept', assetStatsDept.value);
+        if (assetStatsPerson.value) params.set('person', assetStatsPerson.value);
+        if (assetStatsStartDate.value) params.set('start_date', assetStatsStartDate.value);
+        if (assetStatsEndDate.value) params.set('end_date', assetStatsEndDate.value);
+        const data = await api('GET', '/asset_statistics?' + params.toString());
+        assetStatsData.value = data.data || [];
+        await renderAssetCharts();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    function resetAssetStats() {
+      assetStatsType.value = 'by_dept';
+      assetStatsUnit.value = '';
+      assetStatsDept.value = '';
+      assetStatsPerson.value = '';
+      assetStatsStartDate.value = '';
+      assetStatsEndDate.value = '';
+      loadAssetStats();
+    }
+
+    // “总合同数”提示气泡：悬浮显示，内含项目/资产合同占比环形图
+    async function showCountTip() {
+      countTipOpen.value = true;
+      await nextTick();
+      const cv = countTipChart.value;
+      if (!cv) return;
+      if (countTipChartInstance) { countTipChartInstance.destroy(); countTipChartInstance = null; }
+      const b = countBreakdown.value;
+      countTipChartInstance = new Chart(cv.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: ['项目合同', '资产合同'],
+          datasets: [{
+            data: [b.project, b.asset],
+            backgroundColor: ['#1E90FF', '#7CB342'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: false,
+          cutout: '62%',
+          animation: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } }
+        }
+      });
+    }
+
+    function hideCountTip() {
+      countTipOpen.value = false;
+      if (countTipChartInstance) { countTipChartInstance.destroy(); countTipChartInstance = null; }
+    }
+
+    // 选项卡切换：重新渲染对应图表（切换后 canvas 会被重建）
+    async function selectStatsTab(t) {
+      statsTab.value = t;
+      if (t === 'project') {
+        if (assetChart1Instance) { assetChart1Instance.destroy(); assetChart1Instance = null; }
+        if (assetChart2Instance) { assetChart2Instance.destroy(); assetChart2Instance = null; }
+        if (statsData.value.length === 0) await loadStats(); else await renderCharts();
+      } else {
+        if (chart1Instance) { chart1Instance.destroy(); chart1Instance = null; }
+        if (chart2Instance) { chart2Instance.destroy(); chart2Instance = null; }
+        if (assetStatsData.value.length === 0) await loadAssetStats(); else await renderAssetCharts();
+      }
+    }
+
+    async function renderAssetCharts() {
+      await nextTick();
+      if (!assetStatsChart1.value || !assetStatsChart2.value) return;
+      const cv1 = assetStatsChart1.value, cv2 = assetStatsChart2.value;
+      if (assetChart1Instance) { assetChart1Instance.destroy(); assetChart1Instance = null; }
+      if (assetChart2Instance) { assetChart2Instance.destroy(); assetChart2Instance = null; }
+      const old1 = Chart.getChart(cv1); if (old1) old1.destroy();
+      const old2 = Chart.getChart(cv2); if (old2) old2.destroy();
+      assetChart1Instance = null; assetChart2Instance = null;
+      const data = assetStatsData.value;
+      if (!Array.isArray(data) || data.length === 0) return;
+      const DIM_KEYS = ['管理部门', '责任人', '时间'];
+      const shortDeptName = (name) => deptShortName(name);   // 统一用全局简化规则（局本级 / 去掉前缀）
+      const labels = data.map(r => {
+        const keys = Object.keys(r || {});
+        const dim = keys.find(k => DIM_KEYS.includes(k));
+        let label = dim ? String(r[dim] ?? '') : (keys.length ? String(r[keys[0]] ?? '') : '');
+        if (dim === '管理部门') label = shortDeptName(label);
+        return label;
+      });
+      const num = (r, k) => { const n = Number(r[k]); return isNaN(n) ? 0 : n; };
+      const counts = data.map(r => num(r, '资产数'));
+      const rents = data.map(r => num(r, '年租金合计(元)'));
+      const paids = data.map(r => num(r, '已缴租金合计(元)'));
+      if (labels.length === 0) return;
+      const t1 = assetChartType.value || 'bar';
+      const t2 = assetChartType2.value || 'bar';
+      assetChart1Instance = makeChart(assetStatsChart1.value.getContext('2d'), t1, labels, [{ label: '资产数', data: counts, color: '#1E90FF' }], '图表1 资产数量统计（个）');
+      assetChart2Instance = makeChart(assetStatsChart2.value.getContext('2d'), t2, labels, [{ label: '年租金合计(元)', data: rents, color: '#42A5F5' }, { label: '已缴租金合计(元)', data: paids, color: '#7CB342' }], '图表2 年租金与已缴租金对比（元）');
+    }
+
+    async function exportAssetStats() {
+      try {
+        const params = new URLSearchParams();
+        if (assetStatsUnit.value) params.set('unit', assetStatsUnit.value);
+        if (assetStatsDept.value) params.set('dept', assetStatsDept.value);
+        if (assetStatsPerson.value) params.set('person', assetStatsPerson.value);
+        if (assetStatsStartDate.value) params.set('lease_start_start', assetStatsStartDate.value);
+        if (assetStatsEndDate.value) params.set('lease_start_end', assetStatsEndDate.value);
+        const res = await fetch(apiBase + '/asset_contracts/export?' + params.toString(), { credentials: 'include' });
+        if (!res.ok) { toast('导出失败', 'error'); return; }
+        const blob = await res.blob(); const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = '资产合同台账_export.xlsx';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        toast('导出成功', 'success');
+      } catch (e) { toast(e.message, 'error'); }
     }
 
     async function loadStats() {
@@ -1416,11 +2951,7 @@ const importErrorMsg = ref('');
       const data = statsData.value;
       if (!Array.isArray(data) || data.length === 0) return;
       const DIM_KEYS = ['部门','分类','经办人','时间','项目','资金来源'];
-      const shortDeptName = (name) => {
-        const s = String(name ?? '');
-        const prefix = '湘潭市机关事务管理局';
-        return s.startsWith(prefix) ? '局' + s.slice(prefix.length) : s;
-      };
+      const shortDeptName = (name) => deptShortName(name);   // 统一用全局简化规则（局本级 / 去掉前缀）
       const labels = data.map(r => {
         const keys = Object.keys(r || {});
         const dim = keys.find(k => DIM_KEYS.includes(k));
@@ -1471,20 +3002,22 @@ const importErrorMsg = ref('');
 
     function openUserModal(u) {
       if (u) {
-        userEditIndex.value = u.username; userForm.username = u.username; userForm.name = u.name; userForm.department = u.department; userForm.role = u.role;
+        userEditIndex.value = u.username; userForm.username = u.username; userForm.name = u.name; userForm.phone = u.phone || ''; userForm.department = u.department; userForm.role = u.role;
         userForm.managedDepartments = String(u.managed_departments || '').split(/[、,;；]/).map(s => s.trim()).filter(Boolean);
       }
-      else { userEditIndex.value = null; userForm.username = ''; userForm.name = ''; userForm.department = ''; userForm.role = '普通用户'; userForm.managedDepartments = []; }
+      else { userEditIndex.value = null; userForm.username = ''; userForm.name = ''; userForm.phone = ''; userForm.department = ''; userForm.role = '普通用户'; userForm.managedDepartments = []; }
       userModalOpen.value = true;
     }
 
     async function saveUser() {
       if (!userForm.username || !userForm.name || !userForm.department) { toast('请填写完整信息', 'error'); return; }
+      const phone = String(userForm.phone || '').trim();
+      if (phone && !/^(?=.*[0-9])[0-9+\-() ]{1,20}$/.test(phone)) { toast('电话格式不正确（仅支持数字、+、-、括号和空格，最多20位）', 'error'); return; }
       userSaving.value = true;
       try {
         const managed = (userForm.department && isLeadershipDept(userForm.department)) ? userForm.managedDepartments : [];
-        if (userEditIndex.value) { await api('PUT', '/users/' + userEditIndex.value, { name: userForm.name, department: userForm.department, role: userForm.role, managed_departments: managed }); toast('用户更新成功', 'success'); }
-        else { await api('POST', '/users', { username: userForm.username, name: userForm.name, department: userForm.department, role: userForm.role, managed_departments: managed }); toast('用户新增成功', 'success'); }
+        if (userEditIndex.value) { await api('PUT', '/users/' + userEditIndex.value, { name: userForm.name, phone: phone, department: userForm.department, role: userForm.role, managed_departments: managed }); toast('用户更新成功', 'success'); }
+        else { await api('POST', '/users', { username: userForm.username, name: userForm.name, phone: phone, department: userForm.department, role: userForm.role, managed_departments: managed }); toast('用户新增成功', 'success'); }
         userModalOpen.value = false; await loadUsers();
       } catch (e) { toast(e.message, 'error'); }
       userSaving.value = false;
@@ -1555,6 +3088,178 @@ const importErrorMsg = ref('');
       deptSaving.value = false;
     }
 
+    // ═══ 短信提醒 ═══
+    const SMS_SCENE_LABELS = { expire:'到期提醒', receivable:'待收提醒', payable:'待支提醒', urge:'催办', manual:'点对点' };
+    function smsSceneLabel(s) { return SMS_SCENE_LABELS[s] || s || ''; }
+
+    async function saveSmsCfg() {
+      smsSaving.value = true;
+      try {
+        const body = { sms_enabled: smsCfg.enabled, sms_base_url: smsCfg.base_url, sms_access_key: smsCfg.access_key,
+          sms_weekly_enabled: smsCfg.weekly_enabled, sms_weekly_weekday: smsCfg.weekday,
+          sms_weekly_hour: smsCfg.hour, sms_weekly_minute: smsCfg.minute, sms_max_per_run: smsCfg.max_per_run,
+          sms_receipt_token: smsCfg.receipt_token, sms_timeout_sec: smsCfg.timeout,
+          sms_include_sign: smsCfg.include_sign, sms_segment_len: smsCfg.segment_len,
+          sms_sign_suffix: smsCfg.sign_suffix,
+          sms_max_segments: smsCfg.max_segments, sms_block_check: smsCfg.block_check,
+          sms_block_words: smsCfg.block_words, sms_daily_per_phone: smsCfg.daily_per_phone,
+          sms_min_interval_sec: smsCfg.min_interval_sec };
+        if (smsCfg.secret_key && smsCfg.secret_key !== '******') body.sms_secret_key = smsCfg.secret_key;
+        await api('PUT', '/config', body);
+        toast('短信设置已保存', 'success');
+        await loadConfig();
+      } catch (e) { toast(e.message, 'error'); }
+      smsSaving.value = false;
+    }
+
+    async function loadSmsTemplates() { try { const d = await api('GET', '/sms_templates'); smsTemplates.value = d.items || []; } catch (e) {} }
+
+    async function saveSmsTemplate(t) {
+      try {
+        await api('PUT', '/sms_templates/' + encodeURIComponent(t['场景']), { content: t['模板内容'], enabled: t['启用'] || '是' });
+        toast('模板已保存', 'success');
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function runWeeklyNow() {
+      smsRunning.value = true;
+      try {
+        const r = await api('POST', '/sms/run_weekly');
+        toast('执行完成：发送 ' + (r.sent || 0) + ' 条，跳过 ' + (r.skipped || 0) + ' 条，失败 ' + (r.failed || 0) + ' 条' + (r.error ? '（' + r.error + '）' : ''), r.failed ? 'error' : 'success');
+        await loadSmsLogs();
+      } catch (e) { toast(e.message, 'error'); }
+      smsRunning.value = false;
+    }
+
+    async function testSmsConn() {
+      smsTesting.value = true; smsTestResult.value = null;
+      try { smsTestResult.value = await api('POST', '/sms/test_connection'); }
+      catch (e) { smsTestResult.value = { ok: false, message: e.message || '测试失败', steps: [] }; }
+      smsTesting.value = false;
+    }
+
+    async function loadSmsLogs() {
+      try {
+        const qs = new URLSearchParams();
+        qs.set('page', smsLogsPage.value);
+        qs.set('page_size', smsLogsPageSize.value);
+        if (smsLogFilter.scene) qs.set('scene', smsLogFilter.scene);
+        if (smsLogFilter.status) qs.set('status', smsLogFilter.status);
+        if (smsLogFilter.q) qs.set('q', smsLogFilter.q);
+        const d = await api('GET', '/sms_logs?' + qs.toString());
+        smsLogs.value = d.items || [];
+        smsLogsTotal.value = d.total || 0;
+        // 当前页超出范围（如删改筛选条件后）时回退到最后一页，避免出现空白页
+        if (smsLogsPage.value > smsLogsMaxPage.value) { smsLogsPage.value = smsLogsMaxPage.value; return loadSmsLogs(); }
+        smsChecked.value = [];
+      } catch (e) { toast(e.message, 'error'); }
+    }
+    function searchSmsLogs() { smsLogsPage.value = 1; loadSmsLogs(); }
+
+    // 失败重发：勾选当前列表中的“失败”记录，按原手机号/内容重发（原记录保留，另写一条“重发”流水）
+    const failedRows = computed(() => smsLogs.value.filter(l => String(l['状态']) === '失败'));
+    const allFailedChecked = computed(() => failedRows.value.length > 0 && smsChecked.value.length >= failedRows.value.length);
+    function toggleSmsCheck(id) {
+      const i = smsChecked.value.indexOf(id);
+      if (i >= 0) smsChecked.value.splice(i, 1); else smsChecked.value.push(id);
+    }
+    function toggleAllFailed() {
+      smsChecked.value = allFailedChecked.value ? [] : failedRows.value.map(l => l.id);
+    }
+    function resendSmsChecked() {
+      if (!smsChecked.value.length) { toast('请先勾选要重发的失败记录', 'error'); return; }
+      const ids = smsChecked.value.slice();
+      showConfirm('重发失败短信', '确定重发选中的 ' + ids.length + ' 条失败短信？该操作会实际发送短信。', async () => {
+        confirm.loading = true; smsResending.value = true;
+        try {
+          const r = await api('POST', '/sms/resend', { ids });
+          toast('重发完成：成功 ' + (r.sent || 0) + ' 条，失败 ' + (r.failed || 0) + ' 条' + (r.error ? '（' + r.error + '）' : ''), r.failed ? 'error' : 'success');
+          smsChecked.value = [];
+          await loadSmsLogs();
+        } catch (e) { toast(e.message, 'error'); }
+        smsResending.value = false; confirm.loading = false; confirm.show = false;
+      }, '确认重发');
+    }
+
+    async function openSmsModal(kind, id) {
+      smsFree.value = false;
+      smsTarget.kind = kind; smsTarget.id = id;
+      smsScene.value = 'urge'; smsNote.value = ''; smsContent.value = ''; smsPhones.value = '';
+      smsResultMsg.value = ''; smsRecipients.value = [];
+      try {
+        const d = await api('GET', (kind === 'project' ? '/contracts/' : '/asset_contracts/') + id);
+        smsSwitchOn.value = (d.sms_switch || '开启') !== '关闭';
+      } catch (e) { smsSwitchOn.value = true; }
+      await loadSmsRecipients();
+      smsModalOpen.value = true;
+    }
+
+    async function loadSmsRecipients() {
+      try {
+        const d = await api('GET', '/sms_recipients?kind=' + smsTarget.kind + '&scene=' + smsScene.value + '&id=' + encodeURIComponent(smsTarget.id));
+        smsRecipients.value = d.recipients || [];
+      } catch (e) { smsRecipients.value = []; }
+    }
+
+    function onSmsSceneChange() { if (smsScene.value === 'urge') loadSmsRecipients(); }
+
+    // 发送前本地预校验（与后端一致，便于即时提示）：禁止「【】」、敏感词
+    const smsContentIssue = computed(() => {
+      const t = String(smsContent.value || '');
+      if (!t.trim()) return '';
+      if (t.indexOf('【') >= 0 || t.indexOf('】') >= 0) return '内容不能包含「【】」中括号（平台判定为多签名会阻断发送）';
+      if (smsCfg.block_check) {
+        const words = String(smsCfg.block_words || '').split(/[,，、|；;]/).map(s => s.trim()).filter(Boolean);
+        const hit = words.filter(w => t.indexOf(w) >= 0);
+        if (hit.length) return '内容含敏感词：' + hit.slice(0, 5).join('、');
+      }
+      return '';
+    });
+
+    function openSmsFreeModal() {
+      smsFree.value = true;
+      smsTarget.kind = ''; smsTarget.id = '';
+      smsScene.value = 'manual'; smsNote.value = ''; smsContent.value = ''; smsPhones.value = '';
+      smsRecipients.value = []; smsResultMsg.value = ''; smsResultOk.value = true;
+      smsModalOpen.value = true;
+    }
+
+    async function sendSms() {
+      smsResultMsg.value = '';
+      smsResultBlocked.value = [];
+      if (smsFree.value) {
+        if (!smsContent.value.trim()) { toast('请填写短信内容', 'error'); return; }
+        if (smsContentIssue.value) { toast(smsContentIssue.value, 'error'); return; }
+        smsSending.value = true;
+        try {
+          const r = await api('POST', '/sms/send', { content: smsContent.value, phones: smsPhones.value });
+          smsResultOk.value = !!r.ok;
+          smsResultBlocked.value = r.blocked || [];
+          smsResultMsg.value = '发送 ' + (r.sent || 0) + ' 条，跳过 ' + (r.skipped || 0) + ' 条，失败 ' + (r.failed || 0) + ' 条' + (r.error ? '（' + r.error + '）' : '');
+          toast(smsResultOk.value ? '短信已提交' : '短信发送未全部成功', smsResultOk.value ? 'success' : 'error');
+          if (r.sent) await loadSmsLogs();
+        } catch (e) { smsResultOk.value = false; smsResultMsg.value = e.message || '发送失败'; toast(e.message, 'error'); }
+        smsSending.value = false;
+        return;
+      }
+      const base = smsTarget.kind === 'project' ? '/contracts/' : '/asset_contracts/';
+      try { await api('PUT', base + smsTarget.id + '/sms_switch', { enabled: smsSwitchOn.value }); }
+      catch (e) { toast(e.message, 'error'); return; }
+      if (smsScene.value === 'manual' && !smsContent.value.trim()) { toast('请填写短信内容', 'error'); return; }
+      if (smsScene.value === 'manual' && smsContentIssue.value) { toast(smsContentIssue.value, 'error'); return; }
+      smsSending.value = true;
+      try {
+        const r = smsScene.value === 'urge'
+          ? await api('POST', base + smsTarget.id + '/sms_urge', { note: smsNote.value })
+          : await api('POST', base + smsTarget.id + '/sms', { content: smsContent.value, phones: smsPhones.value });
+        smsResultOk.value = !!r.ok;
+        smsResultBlocked.value = r.blocked || [];
+        smsResultMsg.value = '发送 ' + (r.sent || 0) + ' 条，跳过 ' + (r.skipped || 0) + ' 条，失败 ' + (r.failed || 0) + ' 条' + (r.error ? '（' + r.error + '）' : '');
+        toast(smsResultOk.value ? '短信已提交' : '短信发送未全部成功', smsResultOk.value ? 'success' : 'error');
+      } catch (e) { smsResultOk.value = false; smsResultMsg.value = e.message || '发送失败'; toast(e.message, 'error'); }
+      smsSending.value = false;
+    }
+
     async function saveSettings() {
       if (!settingsDays.value || settingsDays.value < 1 || settingsDays.value > 365) { toast('提醒天数应在1-365之间', 'error'); return; }
       if (!settingsLogDays.value || settingsLogDays.value < 1 || settingsLogDays.value > 3650) { toast('日志保留天数应在1-3650之间', 'error'); return; }
@@ -1583,15 +3288,52 @@ const importErrorMsg = ref('');
       importResultMode, importResult, statusText, statusClass, confirmImport, closeImportPreview, importingConfirm,
       importErrorOpen, importErrorMsg, closeImportError,
       contractModalOpen, contractEditId, contractForm, contractSaving, canEdit,
+      contractNumberAuto, refreshContractNumber,
       printContractPdf,
+      printAssetPdf,
+      smsCfg, smsSaving, smsRunning, smsTemplates, smsLogs, smsLogFilter,
+      smsModalOpen, smsScene, smsNote, smsContent, smsPhones, smsRecipients, smsSending, smsResultMsg, smsResultOk, smsSwitchOn,
+      smsSceneLabel, saveSmsCfg, loadSmsTemplates, saveSmsTemplate, runWeeklyNow, loadSmsLogs, searchSmsLogs, openSmsModal, onSmsSceneChange, sendSms,
+      smsLogsTotal, smsLogsPage, smsLogsPageSize, smsLogsMaxPage, smsLogsPages,
+      smsTesting, smsTestResult, testSmsConn,
+      smsFree, openSmsFreeModal,
+      smsChecked, smsResending, failedRows, allFailedChecked, toggleSmsCheck, toggleAllFailed, resendSmsChecked,
+      smsResultBlocked, smsContentIssue,
       attachTypes, attachments, onAttachSelect, removeAttachment,
       openContractModal, saveContract, confirmDelete, confirmArchive, canArchive, contractArchived,
+      openContractFromReminder,
+      assetSearchOpen, assetSearch, assetItems, assetTotal, assetPage, assetPageSize, assetPlaces, assetMaxPage, assetPages,
+      deptOptions,
+      loadAssets, searchAssets, resetAssetSearch, assetMoney, canEditAsset,
+      assetLeaseTermText, autoCalcAssetTotal, onAssetLeaseEndChange,
+      assetAttachTypes, assetAttachments, onAssetAttachSelect, removeAssetAttachment, apiUploadAsset,
+      assetModalOpen, assetEditId, assetForm, assetSaving, assetErrors, openAssetModal, saveAsset, confirmDeleteAsset,
+      onAssetDeptChange, refreshAssetNumber,
+      assetRentRows, assetRentEditable, assetRentTotals, addAssetRentRow, editAssetRentRow, confirmAssetRentRow,
+      cancelAssetRentRow, removeAssetRentRow, assetRentPayMethods,
+      assetArchived, canArchiveAsset, confirmArchiveAsset,
+      exportAssets, downloadAssetTemplate, assetImportFileInput, importAssets, assetImportPreviewOpen, assetImportMode,
+      assetImportItems, assetImportSummary, assetImportResult, assetImporting, confirmAssetImport,
       allDepts, loadDepts, deptsPage, deptsPageSize, deptsTotal, deptsMaxPage, deptsPages, pagedDepts,
       chartType, chartType2, statsType, statsUnit, statsDept, statsPerson, statsYear, statsStartDate, statsEndDate,
       statsData, statsTableHeaders, statsChart1, statsChart2,
       statsFilteredDepts, loadStats, resetStats, exportStats,
-      users, loadUsers, usersPage, usersPageSize, usersTotal, usersMaxPage, usersPages, pagedUsers, userSearchOpen, userSearch, filteredUsers, searchUsers, resetUserSearch, userModalOpen, userEditIndex, userForm, userSaving, isLeadershipDept, managedDisplay,
+      statsTab,
+      selectStatsTab, assetStatsType, assetStatsUnit, assetStatsDept, assetStatsPerson,
+      assetStatsStartDate, assetStatsEndDate, assetStatsData, assetStatsChart1, assetStatsChart2,
+      assetChartType, assetChartType2, assetStatsFilteredDepts, assetStatsTableHeaders,
+      loadAssetStats, resetAssetStats, renderAssetCharts, exportAssetStats,
+      countTipOpen, countTipChart, countBreakdown, showCountTip, hideCountTip,
+      amountTipOpen, amountTipChart, amountBreakdown, showAmountTip, hideAmountTip,
+      expiringTipOpen, expiringTipChart, expiringBreakdown, showExpiringTip, hideExpiringTip,
+      pendingCountTipOpen, pendingCountTipChart, pendingCountBreakdown, showPendingCountTip, hidePendingCountTip,
+      pendingAmountTipOpen, pendingAmountTipChart, pendingAmountBreakdown, showPendingAmountTip, hidePendingAmountTip,
+      pendingTotalAmountDisplay,
+      users, loadUsers, usersPage, usersPageSize, usersTotal, usersMaxPage, usersPages, pagedUsers, userSearchOpen, userSearch, filteredUsers, searchUsers, resetUserSearch, userModalOpen, userEditIndex, userForm, userSaving, isLeadershipDept, managedDisplay, deptShortName,
+      statsCell,
       logsFilter, logsSearchOpen, logsItems, logsTotal, logsPage, logsPageSize, logsMaxPage, logsPages, loadLogs, searchLogs, resetLogs, exportLogs,
+      fieldLogsFilter, fieldLogsItems, fieldLogsTotal, fieldLogsPage, fieldLogsPageSize, fieldLogsMaxPage, fieldLogsPages,
+      loadFieldLogs, searchFieldLogs, resetFieldLogs, fieldLogsSearchOpen, fieldLogFieldOptions,
       openUserModal, saveUser, resetPassword, confirmDeleteUser, saveSelf, cancelSelf, selfForm, selfSaving,
       newDept, addDepartment, confirmDeleteDept, deptEditOpen, deptEditForm, deptSaving, openDeptEdit, saveDept,
       globalLoading, formErrors, settingsDays, settingsLogDays, settingsAttachMb, settingsSaving, saveSettings
@@ -1603,5 +3345,3 @@ app.mount('#app');
 </script>
 </body>
 </html>
-
-
