@@ -321,7 +321,7 @@ body{background:#F0F4FA;min-height:100vh}
         </button>
       </div>
     </div>
-<div class="login-copyright">© 2021–2026 湘潭市机关事务管理局 版权所有｜系统版本 V1.8.4</div>
+<div class="login-copyright">© 2021–2026 湘潭市机关事务管理局 版权所有｜系统版本 V1.8.5</div>
   </div>
 
   <div v-else class="app-layout">
@@ -333,6 +333,7 @@ body{background:#F0F4FA;min-height:100vh}
       </div>
       <div class="nav-right">
         <span class="user-info"><i class="bi bi-person-circle me-1"></i>欢迎，{{ store.user.name }}（{{ roleLabel }}）</span>
+        <button class="logout-btn me-2" @click="switchView('users')" title="修改本人用户名 / 密码"><i class="bi bi-key me-1"></i>修改密码</button>
         <button class="logout-btn" @click="doLogout"><i class="bi bi-box-arrow-right me-1"></i>退出</button>
       </div>
     </div>
@@ -424,6 +425,8 @@ body{background:#F0F4FA;min-height:100vh}
               <button v-if="store.user.role==='管理员'" class="btn-outline-custom btn-sm-custom" @click="downloadTemplate"><i class="bi bi-file-earmark-arrow-down me-1"></i>模板</button>
               <button v-if="store.user.role==='管理员'" class="btn-outline-custom btn-sm-custom" @click="importFileInput.click()"><i class="bi bi-upload me-1"></i>导入</button>
               <input ref="importFileInput" type="file" accept=".xlsx,.xlsm" style="display:none" @change="importContracts">
+              <button v-if="store.user.role==='管理员'" class="btn-outline-custom btn-sm-custom ms-2" @click="importErrorFileInput.click()"><i class="bi bi-download me-1"></i>导出校验结果</button>
+              <input ref="importErrorFileInput" type="file" accept=".xlsx,.xlsm" style="display:none" @change="exportImportErrors">
               <button class="btn-outline-custom btn-sm-custom" @click="loadContracts"><i class="bi bi-arrow-clockwise me-1"></i>刷新</button>
             </div>
           </div>
@@ -487,6 +490,8 @@ body{background:#F0F4FA;min-height:100vh}
               <button v-if="store.user.role==='管理员'" class="btn-outline-custom btn-sm-custom" @click="downloadAssetTemplate"><i class="bi bi-file-earmark-arrow-down me-1"></i>模板</button>
               <button v-if="store.user.role==='管理员'" class="btn-outline-custom btn-sm-custom" @click="assetImportFileInput.click()"><i class="bi bi-upload me-1"></i>导入</button>
               <input ref="assetImportFileInput" type="file" accept=".xlsx,.xlsm" style="display:none" @change="importAssets">
+              <button v-if="store.user.role==='管理员'" class="btn-outline-custom btn-sm-custom ms-2" @click="assetImportErrorFileInput.click()"><i class="bi bi-download me-1"></i>导出校验结果</button>
+              <input ref="assetImportErrorFileInput" type="file" accept=".xlsx,.xlsm" style="display:none" @change="exportAssetImportErrors">
               <button class="btn-outline-custom btn-sm-custom" @click="loadAssets"><i class="bi bi-arrow-clockwise me-1"></i>刷新</button>
             </div>
           </div>
@@ -658,8 +663,8 @@ body{background:#F0F4FA;min-height:100vh}
           </div>
         </div>
         </template>
-        <!-- 非管理员：修改本人用户名和密码 -->
-        <div v-else class="white-card">
+        <!-- 本人账号设置：修改自己的用户名 / 密码（所有角色可见；V1.8.4 起管理员也可在此自助改密） -->
+        <div class="white-card" style="margin-top:16px">
           <h5 style="color:#0A2E5C;font-weight:700;margin:0 0 16px"><i class="bi bi-person-gear me-2"></i>账号设置</h5>
           <div style="font-size:13px;color:#666;margin-bottom:14px;line-height:1.8">当前账号：<span style="color:#E53935">{{ store.user.username }}</span>　姓名：<span style="color:#E53935">{{ store.user.name }}</span>　部门：<span style="color:#E53935">{{ store.user.department }}</span>　角色：<span style="color:#E53935">{{ store.user.role }}</span></div>
           <div class="row g-3">
@@ -713,17 +718,22 @@ body{background:#F0F4FA;min-height:100vh}
         <div class="white-card">
           <h5 style="color:#0A2E5C;font-weight:700;margin-bottom:16px"><i class="bi bi-gear me-2"></i>系统设置</h5>
           <div class="row g-2">
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label class="form-label-sm">全局默认提醒提前天数</label>
               <input class="form-control-sm-custom" v-model.number="settingsDays" type="number" min="1" max="365">
               <div class="field-hint">范围 1-365 天，默认 60 天</div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label class="form-label-sm">全局默认日志保留天数</label>
               <input class="form-control-sm-custom" v-model.number="settingsLogDays" type="number" min="1" max="3650">
               <div class="field-hint">范围 1-3650 天，默认 90 天，超期自动清理</div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
+              <label class="form-label-sm">会话空闲超时（分钟）</label>
+              <input class="form-control-sm-custom" v-model.number="settingsIdleMin" type="number" min="1" max="1440">
+              <div class="field-hint">范围 1-1440 分钟，默认 30 分钟；无操作超过该时长将自动退出登录</div>
+            </div>
+            <div class="col-md-3">
               <label class="form-label-sm">全局默认上传最大附件（M）</label>
               <input class="form-control-sm-custom" v-model.number="settingsAttachMb" type="number" min="1" max="200">
               <div class="field-hint">范围 1-200 M，默认 20 M，超出将被拒绝</div>
@@ -976,6 +986,7 @@ body{background:#F0F4FA;min-height:100vh}
                 <i class="bi bi-paperclip me-1"></i>
                 <a v-if="a.id" :href="'/api/attachments/' + a.id + '/download'" :title="a.type_label" style="color:#1E90FF;text-decoration:none">{{ a.display_name }}</a>
                 <span v-else style="color:#333">{{ a.display_name }}</span>
+                <button v-if="a.id" type="button" title="在线预览" @click="openPreview('project', a.id, a.display_name)" style="border:none;background:none;color:#1E90FF;font-size:12px;padding:0 6px;cursor:pointer">预览</button>
                 <span v-if="a.size" class="attach-size">{{ a.size }}</span>
                 <button type="button" class="attach-remove" :title="'移除附件'" @click="removeAttachment(at.key, ai)">&times;</button>
               </div>
@@ -1087,6 +1098,7 @@ body{background:#F0F4FA;min-height:100vh}
                     <i class="bi bi-paperclip me-1"></i>
                     <a v-if="a.id" :href="'/api/asset_attachments/' + a.id + '/download'" :title="a.type_label" style="color:#1E90FF;text-decoration:none">{{ a.display_name }}</a>
                     <span v-else style="color:#333">{{ a.display_name }}</span>
+                    <button v-if="a.id" type="button" title="在线预览" @click="openPreview('asset', a.id, a.display_name)" style="border:none;background:none;color:#1E90FF;font-size:12px;padding:0 6px;cursor:pointer">预览</button>
                     <span v-if="a.size" class="attach-size">{{ a.size }}</span>
                     <button type="button" class="attach-remove" :title="'移除附件'" @click="removeAssetAttachment(at.key, ai)">&times;</button>
                   </div>
@@ -1174,6 +1186,32 @@ body{background:#F0F4FA;min-height:100vh}
         </div>
       </div></transition>
 <!-- 导入预览/结果 Modal -->
+<transition name="page"><div class="modal-overlay" v-if="previewOpen" @click.self="closePreview">
+  <div class="modal-content" style="max-width:1000px">
+    <div class="modal-header"><h5><i class="bi bi-eye me-2"></i>{{ previewName }}</h5><button class="modal-close" @click="closePreview">&times;</button></div>
+    <div style="padding:16px;text-align:center;max-height:75vh;overflow:auto">
+      <img v-if="previewKind==='image'" :src="previewUrl" :alt="previewName" style="max-width:100%;max-height:70vh;border:1px solid #eef2f7;border-radius:6px">
+      <iframe v-else :src="previewUrl" style="width:100%;height:70vh;border:1px solid #eef2f7;border-radius:6px"></iframe>
+    </div>
+    <div class="modal-footer">
+      <a :href="previewUrl" target="_blank" class="btn-outline-custom btn-sm-custom me-2"><i class="bi bi-box-arrow-up-right me-1"></i>新窗口打开</a>
+      <button class="btn-primary-custom btn-sm-custom" @click="closePreview">关闭</button>
+    </div>
+  </div></div></transition>
+<transition name="page"><div class="modal-overlay" v-if="forcePwOpen">
+  <div class="modal-content" style="max-width:520px">
+    <div class="modal-header"><h5><i class="bi bi-shield-lock me-2"></i>请先修改密码</h5></div>
+    <div style="padding:16px">
+      <div style="font-size:13px;color:#666;margin-bottom:12px;line-height:1.8">为保障账号安全，首次登录（或密码被管理员重置后）必须先修改密码，之后才能继续使用系统。</div>
+      <div class="mb-2"><label class="form-label-sm">原密码</label><input class="form-control-sm-custom" type="password" v-model="forcePwForm.old_password" placeholder="当前密码（初始为 123456）"></div>
+      <div class="mb-2"><label class="form-label-sm">新密码</label><input class="form-control-sm-custom" type="password" v-model="forcePwForm.new_password" placeholder="至少 8 位，需混合字母与数字/符号"></div>
+      <div class="mb-2"><label class="form-label-sm">确认新密码</label><input class="form-control-sm-custom" type="password" v-model="forcePwForm.confirm_password"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline-custom btn-sm-custom me-2" @click="doLogout()">退出登录</button>
+      <button class="btn-primary-custom btn-sm-custom" @click="saveForcePw">确认修改</button>
+    </div>
+  </div></div></transition>
   <transition name="page"><div class="modal-overlay" v-if="importPreviewOpen" @click.self="closeImportPreview">
     <div class="modal-content" style="max-width:1100px">
       <div class="modal-header"><h5><i class="bi bi-file-earmark-spreadsheet me-2"></i>{{ importResultMode==='result'?'导入结果':'导入预览与逐条校验' }}</h5><button class="modal-close" @click="closeImportPreview">&times;</button></div>
@@ -1226,7 +1264,7 @@ const store = reactive({
   dashboard: { total_contracts: 0, project_contract_count: 0, asset_contract_count: 0, project_amount: 0, asset_amount: 0, total_amount: 0, dept_contracts: 0, expiring_contracts: 0, expiring_project_count: 0, expiring_asset_count: 0, pending_project_count: 0, unpaid_amount_total: 0, pending_receivable_count: 0, pending_receivable_amount: 0, pending_total_count: 0, pending_total_amount: 0 },
   reminders: [],
   pendingPayments: [],
-  config: { default_remind_days: 60, default_attach_max_mb: 20 }
+  config: { default_remind_days: 60, default_attach_max_mb: 20, session_idle_minutes: 30 }
 });
 
 const apiBase = '/api';
@@ -1238,7 +1276,13 @@ async function api(method, path, body) {
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (body) opts.body = JSON.stringify(body);
     const res = await fetch(apiBase + path, opts);
-    if (res.status === 401) { store.user = null; throw new Error('未登录'); }
+    if (res.status === 401) {
+      let _m = '未登录';
+      try { const _b = await res.json(); if (_b && _b.error) _m = _b.error; } catch (e) {}
+      store.user = null;
+      try { stopIdleWatch(); } catch (e) {}
+      throw new Error(_m);
+    }
     if (isExport) return res;
     const ct = res.headers.get('content-type') || '';
     if (ct.includes('json')) {
@@ -1608,6 +1652,7 @@ const app = createApp({
     const settingsDays = ref(60);
     const settingsLogDays = ref(90);
     const settingsAttachMb = ref(20);
+const settingsIdleMin = ref(30);
     const settingsSaving = ref(false);
     // ── 短信提醒状态 ──
     const smsCfg = reactive({ enabled:false, base_url:'', access_key:'', secret_key:'',
@@ -1636,6 +1681,7 @@ const app = createApp({
     const smsTarget = reactive({ kind:'', id:'' });
     const smsFree = ref(false);
     const importFileInput = ref(null);
+const importErrorFileInput = ref(null);      // 「导出校验结果」隐藏 file input（V1.8.5）
 const importPreviewOpen = ref(false);
 const importPreviewItems = ref([]);
 const importPreviewSummary = ref({ total: 0, ok_count: 0, warn_count: 0, error_count: 0, importable: 0 });
@@ -1910,6 +1956,7 @@ const importErrorMsg = ref('');
     });
     const assetLeaseTermText = computed(() => assetLeaseTerm.value.text);
     const assetImportFileInput = ref(null);
+const assetImportErrorFileInput = ref(null); // 资产合同「导出校验结果」隐藏 file input（V1.8.5）
     const pendingAssetFile = ref(null);
     const assetImportPreviewOpen = ref(false);
     const assetImportMode = ref('preview');
@@ -2218,6 +2265,8 @@ const importErrorMsg = ref('');
       try {
         const data = await api('POST', '/login', { username: loginForm.username, password: loginForm.password });
         store.user = data; loginLoading.value = false;
+        startIdleWatch();
+        if (data.must_change_pw) { openForcePw(); }
         contractPage.value = 1; contractPageSize.value = 20;
         Object.keys(search).forEach(k => search[k] = '');
         Object.keys(ignoredReminders).forEach(k => delete ignoredReminders[k]);
@@ -2232,7 +2281,7 @@ const importErrorMsg = ref('');
     async function fetchDashboard() { try { const d = await api('GET', '/dashboard'); store.dashboard = d; } catch (e) {} }
     async function fetchReminders() { try { const d = await api('GET', '/reminders'); store.reminders = d.items || []; store.dashboard.expiring_contracts = d.count || 0; reminderLimit.value = 3; } catch (e) {} }
     async function fetchPendingPayments() { try { const d = await api('GET', '/pending_payments'); store.pendingPayments = d.items || []; pendingLimit.value = 2; } catch (e) {} }
-    async function loadConfig() { try { const d = await api('GET', '/config'); store.config = d; settingsDays.value = d.default_remind_days; settingsLogDays.value = d.log_keep_days || 90; settingsAttachMb.value = d.default_attach_max_mb || 20; if (d.sms) Object.assign(smsCfg, d.sms); } catch (e) {} }
+    async function loadConfig() { try { const d = await api('GET', '/config'); store.config = d; settingsDays.value = d.default_remind_days; settingsLogDays.value = d.log_keep_days || 90; settingsAttachMb.value = d.default_attach_max_mb || 20; settingsIdleMin.value = d.session_idle_minutes || 30; if (d.sms) Object.assign(smsCfg, d.sms); } catch (e) {} }
     async function loadDepts() { try { const d = await api('GET', '/departments'); allDepts.value = d.items || []; deptsPage.value = 1; } catch (e) {} }
 
     function ignoreReminder(id) { ignoredReminders[id] = true; }
@@ -3264,9 +3313,100 @@ const importErrorMsg = ref('');
       if (!settingsDays.value || settingsDays.value < 1 || settingsDays.value > 365) { toast('提醒天数应在1-365之间', 'error'); return; }
       if (!settingsLogDays.value || settingsLogDays.value < 1 || settingsLogDays.value > 3650) { toast('日志保留天数应在1-3650之间', 'error'); return; }
       if (!settingsAttachMb.value || settingsAttachMb.value < 1 || settingsAttachMb.value > 200) { toast('附件大小限制应在1-200(M)之间', 'error'); return; }
+      if (!settingsIdleMin.value || settingsIdleMin.value < 1 || settingsIdleMin.value > 1440) { toast('会话空闲超时应为1-1440分钟', 'error'); return; }
       settingsSaving.value = true;
-      try { await api('PUT', '/config', { default_remind_days: settingsDays.value, log_keep_days: settingsLogDays.value, default_attach_max_mb: settingsAttachMb.value }); toast('设置已保存', 'success'); await loadConfig(); } catch (e) { toast(e.message, 'error'); }
+      try { await api('PUT', '/config', { default_remind_days: settingsDays.value, log_keep_days: settingsLogDays.value, default_attach_max_mb: settingsAttachMb.value, session_idle_minutes: settingsIdleMin.value }); toast('设置已保存', 'success'); await loadConfig(); startIdleWatch(); } catch (e) { toast(e.message, 'error'); }
       settingsSaving.value = false;
+    }
+
+    /* ── 会话空闲超时（V1.8.4）：无操作超过 session_idle_minutes 分钟自动退出 ── */
+    let _idleTimer = null;
+    function _idleReset() {
+      if (!store.user) return;
+      if (_idleTimer) clearTimeout(_idleTimer);
+      const ms = (store.config.session_idle_minutes || 30) * 60 * 1000;
+      _idleTimer = setTimeout(_idleLogout, ms);
+    }
+    async function _idleLogout() {
+      try { await api('GET', '/logout'); } catch (e) {}
+      stopIdleWatch();
+      store.user = null;
+      toast('长时间未操作，已自动退出，请重新登录');
+    }
+    function startIdleWatch() {
+      stopIdleWatch();
+      window.addEventListener('mousemove', _idleReset);
+      window.addEventListener('keydown', _idleReset);
+      window.addEventListener('click', _idleReset);
+      _idleReset();
+    }
+    function stopIdleWatch() {
+      if (_idleTimer) { clearTimeout(_idleTimer); _idleTimer = null; }
+      window.removeEventListener('mousemove', _idleReset);
+      window.removeEventListener('keydown', _idleReset);
+      window.removeEventListener('click', _idleReset);
+    }
+
+    /* ── 附件在线预览（图片内联显示 / PDF 用 iframe） ── */
+    const previewOpen = ref(false);
+    const previewUrl = ref('');
+    const previewKind = ref('image');
+    const previewName = ref('');
+    function openPreview(kind, id, name) {
+      if (!id) return toast('附件尚未保存，请先保存合同', 'error');
+      const base = kind === 'asset' ? '/api/asset_attachments/' : '/api/attachments/';
+      previewKind.value = String(name || '').toLowerCase().endsWith('.pdf') ? 'pdf' : 'image';
+      previewUrl.value = base + id + '/download?preview=1';
+      previewName.value = name || '附件';
+      previewOpen.value = true;
+    }
+    function closePreview() { previewOpen.value = false; previewUrl.value = ''; }
+
+    /* ── 首次登录（或管理员重置密码后）强制改密 ── */
+    const forcePwOpen = ref(false);
+    const forcePwForm = reactive({ old_password: '', new_password: '', confirm_password: '' });
+    function openForcePw() { forcePwOpen.value = true; }
+    function closeForcePw() { forcePwOpen.value = false; }
+    async function saveForcePw() {
+      if (!forcePwForm.old_password) return toast('请填写原密码', 'error');
+      if (!forcePwForm.new_password) return toast('请填写新密码', 'error');
+      if (forcePwForm.new_password !== forcePwForm.confirm_password) return toast('两次输入的新密码不一致', 'error');
+      try {
+        await api('PUT', '/users/' + store.user.username + '/self',
+                  { old_password: forcePwForm.old_password, new_password: forcePwForm.new_password });
+        toast('密码修改成功', 'success');
+        forcePwOpen.value = false;
+        forcePwForm.old_password = ''; forcePwForm.new_password = ''; forcePwForm.confirm_password = '';
+        await Promise.all([fetchDashboard(), fetchReminders(), fetchPendingPayments(), loadConfig()]);
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    /* ── 导入校验结果导出（把逐条校验结果下载成 Excel，供填报人就地修改后重新导入） ── */
+    function _saveBlob(blob, name) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    }
+    async function _exportCheckResult(url, file, name) {
+      const fd = new FormData(); fd.append('file', file);
+      const res = await fetch(apiBase + url, { method: 'POST', body: fd });
+      if (res.status === 401) { store.user = null; throw new Error('会话已过期，请重新登录'); }
+      if (!res.ok) { let m = '导出失败'; try { m = (await res.json()).error || m; } catch (e) {} throw new Error(m); }
+      _saveBlob(await res.blob(), name);
+    }
+    async function exportImportErrors(e) {
+      const f = e.target.files[0]; e.target.value = '';
+      if (!f) return;
+      try { await _exportCheckResult('/contracts/import/errors', f, '合同导入校验结果.xlsx'); toast('导入校验结果已导出', 'success'); }
+      catch (err) { toast(err.message, 'error'); }
+    }
+    async function exportAssetImportErrors(e) {
+      const f = e.target.files[0]; e.target.value = '';
+      if (!f) return;
+      try { await _exportCheckResult('/asset_contracts/import/errors', f, '资产合同导入校验结果.xlsx'); toast('导入校验结果已导出', 'success'); }
+      catch (err) { toast(err.message, 'error'); }
     }
 
     async function init() {
@@ -3277,6 +3417,9 @@ const importErrorMsg = ref('');
     onMounted(() => { init(); });
 
     return {
+      settingsIdleMin, previewOpen, previewUrl, previewKind, previewName, openPreview, closePreview,
+      forcePwOpen, forcePwForm, saveForcePw,
+      importErrorFileInput, exportImportErrors, assetImportErrorFileInput, exportAssetImportErrors,
       loginForm, loginError, loginLoading, doLogin, doLogout, logoError,
       store, roleLabel, totalAmountDisplay, unpaidAmountDisplay, fmtMoney, sidebarCollapsed, currentView, pendingLimit, reminderLimit, switchView,
       ignoredReminders, ignoreReminder, permanentClose,

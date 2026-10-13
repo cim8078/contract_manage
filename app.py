@@ -11,6 +11,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 app = Flask(__name__)
 app.secret_key = "xtsgj_contract_manager_secret_key_2026"
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["PERMANENT_SESSION_LIFETIME"] = datetime.timedelta(hours=12)   # Cookie 有效期上限；实际「空闲超时」由服务端 last_active 判定（可配置）
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(BASE_DIR,"data")
@@ -25,6 +26,9 @@ ATTACH_TYPES = {"decision":"\u51b3\u7b56\u4f9d\u636e\u9644\u4ef6","contract":"\u
 ATTACH_IMAGE_EXT = {".jpg",".jpeg",".png",".gif",".webp",".bmp"}   # 图片格式（「资产现状图片」仅允许这一类）
 ATTACH_ALLOWED_EXT = ATTACH_IMAGE_EXT | {".pdf"}                   # 通用白名单：图片 + PDF
 DEFAULT_ATTACH_MAX_MB = 20
+SESSION_IDLE_DEFAULT_MIN = 30    # 会话空闲超时（分钟），可由 settings.session_idle_minutes 调整
+LOGIN_FAIL_MAX = 5               # 连续口令错误达到该次数即锁定账号
+LOGIN_LOCK_MIN = 15              # 锁定时长（分钟）
 SALT = "xtsgj_2024_contract"
 
 for d in [DATA_DIR,BACKUP_DIR,STATIC_DIR,ATTACH_DIR,os.path.join(BASE_DIR,"templates")]:
@@ -459,6 +463,7 @@ CREATE TABLE IF NOT EXISTS project_contracts (
 CREATE TABLE IF NOT EXISTS users (
   "用户名" TEXT PRIMARY KEY, "密码" TEXT, "姓名" TEXT, "所属部门" TEXT, "角色" TEXT, "分管部门" TEXT,
   "所属单位" TEXT, "所属科室" TEXT, "电话" TEXT,
+  "需改密" TEXT, "失败次数" INTEGER DEFAULT 0, "锁定至" TEXT,
   FOREIGN KEY ("所属单位","所属科室") REFERENCES departments("单位名称","科室名称") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE IF NOT EXISTS departments (
@@ -1087,6 +1092,20 @@ def _mig_v31_attachments_fk_cascade(con):
     finally:
         con.execute("PRAGMA foreign_keys=ON")
 
+def _mig_v32_users_login_policy(con):
+    """v32：users 追加登录与口令策略列（幂等）。
+    - 「需改密」TEXT：'1' 表示下次登录必须先修改密码（新增用户初始口令 123456、管理员重置密码后置 1）；
+    - 「失败次数」INTEGER：连续登录失败计数；「锁定至」TEXT：锁定期限（yyyy-mm-dd HH:MM:SS）。
+    既有用户一律不强制改密（迁移只加列，不置标志），避免升级即锁死使用。
+    """
+    cols = [r[1] for r in con.execute("PRAGMA table_info(users)").fetchall()]
+    for col, ddl in (("需改密", '"需改密" TEXT'),
+                     ("失败次数", '"失败次数" INTEGER DEFAULT 0'),
+                     ("锁定至", '"锁定至" TEXT')):
+        if col not in cols:
+            con.execute("ALTER TABLE users ADD COLUMN " + ddl)
+            print("[INFO] v32：users 追加列 %s" % col, file=sys.stderr)
+
 MIGRATIONS = [
     # 注意：v1/v2/v4 的历史说明按“已执行版本”原样保留（当时表名为 contracts，v5 才改名为 project_contracts），
     #       与库内 schema_version 记录逐字一致（项目规范 7.3：禁止修改已执行的历史版本，含说明文本）。
@@ -1127,6 +1146,8 @@ MIGRATIONS = [
     (30, "删除已废弃的短信签名配置项 sms_sign_name（改用正文末尾署名 sms_sign_suffix）", _mig_v30_drop_sms_sign_name),
     (31, "project_attachments 外键改为 ON UPDATE CASCADE（修复改合同编号时 HTTP 500：带附件的合同无法改号）",
      _mig_v31_attachments_fk_cascade, {"own_transaction": True}),
+    (32, "users 追加登录与口令策略列：需改密 / 失败次数 / 锁定至（配合会话空闲超时与登录失败锁定）",
+     _mig_v32_users_login_policy),
 ]
 
 def _run_versioned_migrations(con):
@@ -1803,8 +1824,9 @@ def _seed_defaults():
                 con.execute('INSERT INTO departments ("单位名称","科室名称") VALUES (?,?)',
                             ("湘潭市机关事务管理局本级", "办公室"))
             if con.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 0:
-                con.execute('INSERT INTO users ("用户名","密码","姓名","所属部门","角色") VALUES (?,?,?,?,?)',
-                            ("admin", hash_pw("123456"), "系统管理员", "湘潭市机关事务管理局本级-办公室", "管理员"))
+                # 全新部署：默认管理员口令仍为 123456，但标记「需改密」，首次登录即强制修改
+                con.execute('INSERT INTO users ("用户名","密码","姓名","所属部门","角色","需改密") VALUES (?,?,?,?,?,?)',
+                            ("admin", hash_pw("123456"), "系统管理员", "湘潭市机关事务管理局本级-办公室", "管理员", "1"))
             if con.execute('SELECT COUNT(*) FROM settings').fetchone()[0] == 0:
                 con.execute('INSERT INTO settings ("配置项","配置值") VALUES (?,?)', ("default_remind_days", "60"))
             con.commit()
@@ -2132,6 +2154,17 @@ def set_cfg(k,v):
     db_exec('INSERT INTO settings ("配置项","配置值") VALUES (?,?) '
             'ON CONFLICT("配置项") DO UPDATE SET "配置值"=excluded."配置值"', (k, str(v)))
 def hash_pw(p): return hashlib.sha256((p+SALT).encode()).hexdigest()
+
+def _pw_issue(pw, username=""):
+    """口令强度校验：返回问题描述（中文），通过返回 ''。
+    规则：长度 ≥ 8 位；不得与用户名相同；不得为初始口令/常见弱口令；不得为纯数字或纯字母。"""
+    s = str(pw or "")
+    if len(s) < 8: return "新密码长度至少 8 位"
+    if s == str(username or ""): return "新密码不能与用户名相同"
+    if s in ("123456", "12345678", "123456789", "password", "Password", "admin123"): return "新密码过于简单，请更换"
+    if s.isdigit(): return "新密码不能为纯数字，请混合字母或符号"
+    if s.isalpha(): return "新密码不能为纯字母，请混合数字或符号"
+    return ""
 def parse_date(s):
     if not s or str(s).strip()=="": return None
     ds = str(s).strip().replace("/","-")
@@ -2311,10 +2344,48 @@ def _can_write(c):
     return vis is not None and str(c.get("\u6240\u5c5e\u90e8\u95e8", "")).strip() in vis
 
 # ──── Auth Decorators ────
+def get_session_idle_min():
+    """会话空闲超时（分钟）：读 settings.session_idle_minutes，非法值回退默认 30。"""
+    v = get_cfg("session_idle_minutes")
+    try:
+        n = int(float(v))
+        return n if 1 <= n <= 1440 else SESSION_IDLE_DEFAULT_MIN
+    except Exception:
+        return SESSION_IDLE_DEFAULT_MIN
+
+def _session_expired():
+    """空闲超时判定（滑动窗口）：距上次请求超过 session["idle_min"] 分钟即判过期并清空会话。
+    超时时长在登录时写入会话（配置改后下次登录生效），避免每请求查库。"""
+    if "username" not in session:
+        return False
+    now = time.time()
+    last = session.get("last_active")
+    idle_min = session.get("idle_min") or SESSION_IDLE_DEFAULT_MIN
+    if last is not None and (now - float(last)) > float(idle_min) * 60:
+        session.clear()
+        return True
+    session["last_active"] = now
+    return False
+
+def _must_change_block(u):
+    """首次登录（或管理员重置密码后）强制改密：仅放行「当前用户信息 / 登出 / 自助改密」三类路径。"""
+    if str((u or {}).get("需改密") or "").strip() != "1":
+        return None
+    p = request.path or ""
+    if p in ("/api/current_user", "/api/logout") or p.endswith("/self"):
+        return None
+    return jsonify({"error": "首次登录请先修改密码（右上角「修改密码」）", "code": "MUST_CHANGE_PASSWORD"}), 403
+
 def login_required(f):
     @wraps(f)
     def wrapper(*a,**kw):
         if "username" not in session: return jsonify({"error":"\u672a\u767b\u5f55"}),401
+        if _session_expired(): return jsonify({"error":"会话已超时，请重新登录","code":"SESSION_EXPIRED"}),401
+        u = get_user(session["username"])
+        if not u:
+            session.clear(); return jsonify({"error":"用户不存在"}),401
+        blocked = _must_change_block(u)
+        if blocked: return blocked
         return f(*a,**kw)
     return wrapper
 
@@ -2322,8 +2393,11 @@ def admin_required(f):
     @wraps(f)
     def wrapper(*a,**kw):
         if "username" not in session: return jsonify({"error":"\u672a\u767b\u5f55"}),401
+        if _session_expired(): return jsonify({"error":"会话已超时，请重新登录","code":"SESSION_EXPIRED"}),401
         u = get_user(session["username"])
         if not u or u.get("\u89d2\u8272")!="\u7ba1\u7406\u5458": return jsonify({"error":"\u6743\u9650\u4e0d\u8db3"}),403
+        blocked = _must_change_block(u)
+        if blocked: return blocked
         return f(*a,**kw)
     return wrapper
 
@@ -2344,13 +2418,36 @@ def api_login():
     if not u:
         write_log("用户登录", "登录", obj=un, result="失败")
         return jsonify({"error":"用户名或密码错误"}),401
+    # 登录失败锁定（v32）：账号处于锁定期时直接拒绝
+    locked_until = str(u.get("锁定至") or "").strip()
+    if locked_until:
+        try:
+            until = datetime.datetime.strptime(locked_until, "%Y-%m-%d %H:%M:%S")
+        except Exception:
+            until = None
+        if until and datetime.datetime.now() < until:
+            mins = int((until - datetime.datetime.now()).total_seconds() // 60) + 1
+            write_log("用户登录", "登录", obj=un, result="失败")
+            return jsonify({"error": "账号已锁定，请 %d 分钟后再试" % mins, "code": "LOCKED"}),403
     stored_pw = u.get("密码哈希", u.get("密码", ""))
     if stored_pw != hash_pw(pw):
+        fails = int(u.get("失败次数") or 0) + 1
+        if fails >= LOGIN_FAIL_MAX:
+            until = (datetime.datetime.now() + datetime.timedelta(minutes=LOGIN_LOCK_MIN)).strftime("%Y-%m-%d %H:%M:%S")
+            db_exec('UPDATE users SET "失败次数"=0, "锁定至"=? WHERE "用户名"=?', (until, un))
+            write_log("用户登录", "登录", obj=un, result="失败")
+            return jsonify({"error": "密码错误次数过多，账号已锁定 %d 分钟" % LOGIN_LOCK_MIN, "code": "LOCKED"}),403
+        db_exec('UPDATE users SET "失败次数"=? WHERE "用户名"=?', (fails, un))
         write_log("用户登录", "登录", obj=un, result="失败")
-        return jsonify({"error":"用户名或密码错误"}),401
+        return jsonify({"error":"用户名或密码错误（还可尝试 %d 次）" % (LOGIN_FAIL_MAX - fails)}),401
+    if locked_until or int(u.get("失败次数") or 0):
+        db_exec('UPDATE users SET "失败次数"=0, "锁定至"=? WHERE "用户名"=?', ("", un))
     session["username"]=un; session.permanent=True
+    session["last_active"] = time.time()
+    session["idle_min"] = get_session_idle_min()
     write_log("用户登录", "登录", obj=un, result="成功")
-    return jsonify({"username":u["\u7528\u6237\u540d"],"name":u["\u59d3\u540d"],"department":u["\u6240\u5c5e\u90e8\u95e8"],"role":u["\u89d2\u8272"]})
+    return jsonify({"username":u["\u7528\u6237\u540d"],"name":u["\u59d3\u540d"],"department":u["\u6240\u5c5e\u90e8\u95e8"],"role":u["\u89d2\u8272"],
+                    "must_change_pw": str(u.get("需改密") or "").strip() == "1"})
 
 @app.route("/api/logout")
 def api_logout():
@@ -3738,6 +3835,43 @@ def api_import_preview():
         "importable": ok_count + warn_count, "items": items,
     })
 
+@app.route("/api/contracts/import/errors", methods=["POST"])
+@admin_required
+def api_import_errors():
+    """导出导入校验结果：原始表头 + 「校验结果」「问题说明」两列（含全部行），供填报人就地修改后重新导入。"""
+    rows, hdr, err = _load_import_file()
+    if err: return jsonify({"error": err}), 400
+    existing = _import_existing_numbers()
+    file_seen = {}
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "导入校验结果"
+    cols = list(hdr) + ["校验结果", "问题说明"]
+    for ci, h in enumerate(cols, 1):
+        ws.cell(row=1, column=ci, value=h).font = Font(bold=True)
+    label = {"ok": "通过", "warn": "警告", "error": "错误"}
+    n_ok = n_warn = n_err = 0
+    out_row = 1
+    for ri in range(1, len(rows)):
+        src = rows[ri]
+        if src is None: continue
+        if all(v is None or str(v).strip() == "" for v in src): continue
+        vals = _build_import_vals(hdr, src)
+        status, reasons = _check_import_row(vals, existing, file_seen, ri + 1)
+        n_ok += 1 if status == "ok" else 0
+        n_warn += 1 if status == "warn" else 0
+        n_err += 1 if status == "error" else 0
+        out_row += 1
+        for ci in range(len(hdr)):
+            ws.cell(row=out_row, column=ci + 1, value=(src[ci] if ci < len(src) else ""))
+        ws.cell(row=out_row, column=len(hdr) + 1, value=label.get(status, status))
+        ws.cell(row=out_row, column=len(hdr) + 2, value="；".join(reasons))
+    bio = BytesIO(); wb.save(bio); bio.seek(0)
+    from urllib.parse import quote
+    fn = "合同导入校验结果_%s.xlsx" % datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    write_log("合同台账", "导出导入校验结果", obj=request.files.get("file").filename,
+              detail="通过 %d / 警告 %d / 错误 %d" % (n_ok, n_warn, n_err))
+    return Response(bio.getvalue(), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": "attachment; filename*=UTF-8''" + quote(fn)})
+
 @app.route("/api/contracts/import", methods=["POST"])
 @admin_required
 def api_import_contracts():
@@ -3954,7 +4088,8 @@ def api_download_attachment(att_id):
             return jsonify({"error":"\u6743\u9650\u4e0d\u8db3"}),403
     fp = os.path.join(ATTACH_DIR, row.get("\u5b58\u50a8\u6587\u4ef6\u540d",""))
     if not os.path.exists(fp): return jsonify({"error":"\u9644\u4ef6\u6587\u4ef6\u4e0d\u5b58\u5728"}),404
-    return send_file(fp, as_attachment=True, download_name=row.get("\u663e\u793a\u540d\u79f0","\u9644\u4ef6"))
+    _inline = str(request.args.get("preview", "")).strip().lower() in ("1", "true", "yes")
+    return send_file(fp, as_attachment=not _inline, download_name=row.get("\u663e\u793a\u540d\u79f0","\u9644\u4ef6"))
 
 @app.route("/api/attachments/<att_id>",methods=["DELETE"])
 @login_required
@@ -4654,7 +4789,8 @@ def api_download_asset_attachment(att_id):
     if (_int(row.get("资产合同ID")) or 0) not in visible: return jsonify({"error":"附件不存在"}),404
     fp = os.path.join(ATTACH_DIR, row.get("存储文件名",""))
     if not os.path.exists(fp): return jsonify({"error":"附件文件缺失"}),404
-    return send_file(fp, as_attachment=True, download_name=row.get("显示名称","附件"))
+    _inline = str(request.args.get("preview", "")).strip().lower() in ("1", "true", "yes")
+    return send_file(fp, as_attachment=not _inline, download_name=row.get("显示名称","附件"))
 
 @app.route("/api/asset_attachments/<att_id>", methods=["DELETE"])
 @login_required
@@ -4802,6 +4938,42 @@ def api_asset_import_preview():
                                "asset_name": str(it[1].get("资产名称", "")), "tenant": str(it[1].get("承租人", "")),
                                "status": it[2], "messages": it[3]} for it in items],
                     "total": len(items), "ok": ok, "error": len(items) - ok})
+
+@app.route("/api/asset_contracts/import/errors", methods=["POST"])
+@admin_required
+def api_asset_import_errors():
+    """导出资产合同导入校验结果（结构同上）。"""
+    rows, hdr, err = _load_asset_import_file()
+    if err: return jsonify({"error": err}), 400
+    items = _asset_import_items(rows, hdr)
+    by_row = {it[0]: (it[2], it[3]) for it in items}
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "导入校验结果"
+    cols = list(hdr) + ["校验结果", "问题说明"]
+    for ci, h in enumerate(cols, 1):
+        ws.cell(row=1, column=ci, value=h).font = Font(bold=True)
+    label = {"ok": "通过", "warn": "警告", "error": "错误"}
+    n_ok = n_warn = n_err = 0
+    out_row = 1
+    for ri in range(1, len(rows)):
+        src = rows[ri]
+        if src is None: continue
+        if all(v is None or str(v).strip() == "" for v in src): continue
+        status, msgs = by_row.get(ri + 1, ("ok", []))
+        n_ok += 1 if status == "ok" else 0
+        n_warn += 1 if status == "warn" else 0
+        n_err += 1 if status == "error" else 0
+        out_row += 1
+        for ci in range(len(hdr)):
+            ws.cell(row=out_row, column=ci + 1, value=(src[ci] if ci < len(src) else ""))
+        ws.cell(row=out_row, column=len(hdr) + 1, value=label.get(status, status))
+        ws.cell(row=out_row, column=len(hdr) + 2, value="；".join(msgs))
+    bio = BytesIO(); wb.save(bio); bio.seek(0)
+    from urllib.parse import quote
+    fn = "资产合同导入校验结果_%s.xlsx" % datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    write_log("资产合同台账", "导出导入校验结果", obj=request.files.get("file").filename,
+              detail="通过 %d / 警告 %d / 错误 %d" % (n_ok, n_warn, n_err))
+    return Response(bio.getvalue(), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": "attachment; filename*=UTF-8''" + quote(fn)})
 
 @app.route("/api/asset_contracts/import", methods=["POST"])
 @admin_required
@@ -5033,10 +5205,12 @@ def api_create_user():
             managed = norm_managed(d["managed_departments"])
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
-    db_exec('INSERT INTO users ("用户名","密码","姓名","所属部门","角色","分管部门","电话") VALUES (?,?,?,?,?,?,?)',
-            (un, hash_pw("123456"), nm, dp, rl, managed, phone))
+    # v32：新用户初始口令 123456，标记「需改密」——首次登录必须先修改
+    db_exec('INSERT INTO users ("用户名","密码","姓名","所属部门","角色","分管部门","电话","需改密") '
+            'VALUES (?,?,?,?,?,?,?,?)',
+            (un, hash_pw("123456"), nm, dp, rl, managed, phone, "1"))
     write_log("用户管理", "新增用户", obj=un, detail=nm + " / " + dp)
-    return jsonify({"message":"用户创建成功，默认密码 123456"}),201
+    return jsonify({"message":"用户创建成功，默认密码 123456（该用户首次登录需修改密码）"}),201
 
 @app.route("/api/users/<username>",methods=["PUT"])
 @admin_required
@@ -5062,6 +5236,9 @@ def api_update_user(username):
         sets.append('"电话"=?'); params.append(phone)
     if "reset_password" in d and d["reset_password"]:
         sets.append('"密码"=?'); params.append(hash_pw("123456"))
+        sets.append('"需改密"=?'); params.append("1")     # v32：重置后强制首次改密
+        sets.append('"失败次数"=?'); params.append(0)
+        sets.append('"锁定至"=?'); params.append("")
     if "managed_departments" in d:
         if is_leadership_dept(final_dept):
             try:
@@ -5099,13 +5276,17 @@ def api_update_self(username):
             return jsonify({"error":"\u539f\u5bc6\u7801\u4e0d\u6b63\u786e"}),400
     if not new_un and not new_pw:
         return jsonify({"error":"\u8bf7\u586b\u5199\u8981\u4fee\u6539\u7684\u7528\u6237\u540d\u6216\u5bc6\u7801"}),400
+    if new_pw:
+        _issue = _pw_issue(new_pw, username)
+        if _issue: return jsonify({"error": _issue}), 400
     if new_un and new_un != username:
         if get_user(new_un):
             return jsonify({"error":"\u7528\u6237\u540d\u5df2\u5b58\u5728"}),400
         db_exec('UPDATE users SET "用户名"=? WHERE "用户名"=?', (new_un, username))
         username = new_un
     if new_pw:
-        db_exec('UPDATE users SET "密码"=? WHERE "用户名"=?', (hash_pw(new_pw), username))
+        # v32：改密成功即清除「需改密」标记（首次登录/重置后强制改密的状态随之解除）
+        db_exec('UPDATE users SET "密码"=?, "需改密"=? WHERE "用户名"=?', (hash_pw(new_pw), "0", username))
     session["username"] = username
     write_log("用户管理", "修改个人信息", obj=username, detail="用户名或密码变更")
     return jsonify({"message":"\u4fee\u6539\u6210\u529f","username":username})
