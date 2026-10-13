@@ -11,3 +11,12 @@ pip install -r requirements.txt
 
 python app.py
 
+
+发版前检查（完整清单见 docs/系统部署手册.md 第 5.4 节「发版（升级）检查单」）
+
+1) 先备份生产库：把 data/合同台账.db 复制到 backups/合同台账_发版前_<时间戳>.db
+2) 语法自检：python -m py_compile app.py contract_no.py
+3) 启动服务后跑前端逐视图冒烟（退出码必须为 0）：
+   node tools/browser_smoke.mjs --base http://127.0.0.1:5000
+   脚本用真实浏览器登录后逐个切换左侧 9 个菜单视图，捕捉控制台报错，可拦住“整页空白/单个视图空白”类前端渲染故障。
+
