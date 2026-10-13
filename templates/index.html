@@ -321,7 +321,7 @@ body{background:#F0F4FA;min-height:100vh}
         </button>
       </div>
     </div>
-    <div class="login-copyright">© 2021–2026 湘潭市机关事务管理局 版权所有｜系统版本 V1.2</div>
+<div class="login-copyright">© 2021–2026 湘潭市机关事务管理局 版权所有｜系统版本 V1.8.4</div>
   </div>
 
   <div v-else class="app-layout">
@@ -939,7 +939,7 @@ body{background:#F0F4FA;min-height:100vh}
           <div class="col-md-4"><label class="form-label-sm">项目分类 <span style="color:#f44336">*</span></label><select class="form-select-sm-custom" v-model="contractForm.category" :class="{'is-invalid':formErrors.category}" @change="delete formErrors.category"><option value="">请选择</option><option>服务类</option><option>维护维修类</option><option>货物类</option><option>建设项目</option></select></div>
           <div class="col-md-4"><label class="form-label-sm">项目名称 <span style="color:#f44336">*</span></label><input class="form-control-sm-custom" v-model="contractForm.name" :class="{'is-invalid':formErrors.name}" @input="delete formErrors.name"><div class="form-error">{{ formErrors.name||'' }}</div></div>
           <div class="col-md-4"><label class="form-label-sm">决策依据</label><input class="form-control-sm-custom" v-model="contractForm.decision_basis"></div>
-          <div class="col-md-4"><label class="form-label-sm">决策的招标控制价</label><input class="form-control-sm-custom" v-model="contractForm.bid_control_price"></div>
+<div class="col-md-4"><label class="form-label-sm">决策的招标控制价（万元）</label><input class="form-control-sm-custom" v-model="contractForm.bid_control_price"></div>
           <div class="col-md-4"><label class="form-label-sm">招标控制价决策的依据</label><input class="form-control-sm-custom" v-model="contractForm.price_basis"></div>
           <div class="col-md-4"><label class="form-label-sm">采购方式 <span style="color:#f44336">*</span></label><select class="form-select-sm-custom" v-model="contractForm.procurement_method" :class="{'is-invalid':formErrors.procurement_method}" @change="delete formErrors.procurement_method"><option value="">请选择</option><option>公开招标</option><option>竞争性磋商</option><option>竞争性谈判</option><option>自行采购</option></select></div>
           <div class="col-md-4"><label class="form-label-sm">中标单位</label><input class="form-control-sm-custom" v-model="contractForm.winner"></div>
@@ -955,9 +955,9 @@ body{background:#F0F4FA;min-height:100vh}
           <div class="col-md-2"><label class="form-label-sm">是否有签证或变更</label><select class="form-select-sm-custom" v-model="contractForm.has_change"><option value="">-</option><option>是</option><option>否</option></select></div>
           <div class="col-md-6"><label class="form-label-sm">签证或变更情况</label><input class="form-control-sm-custom" v-model="contractForm.change_detail"></div>
           <div class="col-md-3"><label class="form-label-sm">是否结算</label><select class="form-select-sm-custom" v-model="contractForm.is_settled"><option value="">-</option><option>是</option><option>否</option></select></div>
-          <div class="col-md-3"><label class="form-label-sm">结算金额</label><input class="form-control-sm-custom" v-model.number="contractForm.settled_amount" type="number" step="0.01"></div>
-          <div class="col-md-3"><label class="form-label-sm">已支付</label><input class="form-control-sm-custom" v-model.number="contractForm.paid_amount" type="number" step="0.01"></div>
-          <div class="col-md-3"><label class="form-label-sm">未支付</label><input class="form-control-sm-custom" v-model.number="contractForm.unpaid_amount" type="number" step="0.01"></div>
+<div class="col-md-3"><label class="form-label-sm">结算金额（万元）</label><input class="form-control-sm-custom" v-model.number="contractForm.settled_amount" type="number" step="0.01"></div>
+<div class="col-md-3"><label class="form-label-sm">已支付（万元）</label><input class="form-control-sm-custom" v-model.number="contractForm.paid_amount" type="number" step="0.01"></div>
+<div class="col-md-3"><label class="form-label-sm">未支付（万元）</label><input class="form-control-sm-custom" v-model.number="contractForm.unpaid_amount" type="number" step="0.01"></div>
           <div class="col-md-2"><label class="form-label-sm">期限</label><input class="form-control-sm-custom" v-model="contractForm.term"></div>
           <div class="col-md-6"><label class="form-label-sm">经办人 <span style="color:#f44336">*</span></label><input class="form-control-sm-custom" v-model="contractForm.handler" placeholder="多人用中文顿号分隔" :class="{'is-invalid':formErrors.handler}" @input="delete formErrors.handler"><div class="form-error">{{ formErrors.handler||'' }}</div></div>
                 <div class="col-md-4"><label class="form-label-sm">所属部门</label><input class="form-control-sm-custom" :value="deptShortName(contractForm.department)" :title="contractForm.department" readonly></div>

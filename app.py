@@ -1,4 +1,4 @@
-import os,sys,shutil,hashlib,datetime,uuid,sqlite3,threading,time,json
+import os,sys,re,shutil,hashlib,datetime,uuid,sqlite3,threading,time,json
 import urllib.request
 import contract_no
 from functools import wraps
@@ -22,7 +22,8 @@ ATTACH_DIR = os.path.join(DATA_DIR,"attachments")
 ATTACH_SHEET = "\u5408\u540c\u9644\u4ef6"
 ATTACH_HEADERS = ["\u9644\u4ef6ID","\u5408\u540c\u7f16\u53f7","\u9644\u4ef6\u7c7b\u578b","\u663e\u793a\u540d\u79f0","\u5b58\u50a8\u6587\u4ef6\u540d","\u6587\u4ef6\u5927\u5c0f","\u4e0a\u4f20\u4eba","\u4e0a\u4f20\u65f6\u95f4"]
 ATTACH_TYPES = {"decision":"\u51b3\u7b56\u4f9d\u636e\u9644\u4ef6","contract":"\u5408\u540c\u9644\u4ef6","acceptance":"\u9a8c\u6536\u7ed3\u7b97\u9644\u4ef6"}
-ATTACH_ALLOWED_EXT = {".jpg",".jpeg",".png",".gif",".webp",".bmp",".pdf"}
+ATTACH_IMAGE_EXT = {".jpg",".jpeg",".png",".gif",".webp",".bmp"}   # 图片格式（「资产现状图片」仅允许这一类）
+ATTACH_ALLOWED_EXT = ATTACH_IMAGE_EXT | {".pdf"}                   # 通用白名单：图片 + PDF
 DEFAULT_ATTACH_MAX_MB = 20
 SALT = "xtsgj_2024_contract"
 
@@ -469,7 +470,7 @@ CREATE TABLE IF NOT EXISTS settings (
 CREATE TABLE IF NOT EXISTS project_attachments (
   "附件ID" TEXT PRIMARY KEY, "合同编号" TEXT, "附件类型" TEXT, "显示名称" TEXT,
   "存储文件名" TEXT, "文件大小" TEXT, "上传人" TEXT, "上传时间" TEXT,
-  FOREIGN KEY ("合同编号") REFERENCES project_contracts("编号") ON DELETE RESTRICT ON UPDATE RESTRICT
+  FOREIGN KEY ("合同编号") REFERENCES project_contracts("编号") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE TABLE IF NOT EXISTS operation_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1021,11 +1022,78 @@ def _mig_v30_drop_sms_sign_name(con):
     """
     con.execute('DELETE FROM settings WHERE "配置项"=?', ("sms_sign_name",))
 
+def _mig_v31_attachments_fk_cascade(con):
+    """v31：project_attachments 外键由 ON UPDATE RESTRICT 改为 ON UPDATE CASCADE（修复 D-12）。
+
+    背景（D-12）：合同「编号」变更时，原实现先改附件表（子表）、再改主表（父表）；
+    而附件表外键为 ON UPDATE RESTRICT —— 子行不得指向尚不存在的父键值，父键也不得在被子行引用时修改，
+    于是抛 sqlite3.IntegrityError: FOREIGN KEY constraint failed → 接口 HTTP 500，
+    「带附件的项目合同无法改编号」（无附件的合同正常）。
+
+    改为 ON UPDATE CASCADE 后，更新 project_contracts."编号" 会在同一条语句（同一事务）内
+    自动级联更新附件行的「合同编号」，接口侧无需再手工同步附件，改编号成为原子操作。
+
+    实现：按 SQLite 官方“重建表”流程——先关闭外键（必须在事务外，PRAGMA foreign_keys 在事务内设置无效），
+    再在事务内 建新表 → 复制数据 → 删旧表 → 改名 → PRAGMA foreign_key_check 校验 → 提交。
+    本迁移在 MIGRATIONS 中标记 own_transaction=True，由迁移运行器负责调用与记录版本号；幂等：
+    外键已是 CASCADE 时直接跳过。
+    """
+    row = con.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='project_attachments'").fetchone()
+    if row and "ON UPDATE CASCADE" in (row[0] or "").upper():
+        print("[INFO] v31：project_attachments 外键已是 ON UPDATE CASCADE，跳过重建", file=sys.stderr)
+        return
+    info = con.execute('PRAGMA table_info("project_attachments")').fetchall()
+    if not info:
+        print("[WARN] v31：未找到 project_attachments 表，跳过", file=sys.stderr)
+        return
+    segs = []
+    for r in info:
+        cname, ctype, notnull, dflt, pk = r[1], r[2], r[3], r[4], r[5]
+        seg = '"%s" %s' % (cname, ctype or "TEXT")
+        if notnull: seg += " NOT NULL"
+        if dflt is not None: seg += " DEFAULT " + str(dflt)
+        if pk == 1: seg += " PRIMARY KEY"
+        segs.append(seg)
+    segs.append('FOREIGN KEY ("合同编号") REFERENCES project_contracts("编号")'
+                ' ON DELETE RESTRICT ON UPDATE CASCADE')
+    new_ddl = "CREATE TABLE project_attachments_new (\n  " + ",\n  ".join(segs) + "\n)"
+    cols = ",".join('"%s"' % r[1] for r in info)
+    n_old = con.execute("SELECT COUNT(*) FROM project_attachments").fetchone()[0]
+    # 重建前整库备份（与 A-03/A-06 的重建流程一致，避免结构变更无回滚点）
+    try:
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        bak = os.path.join(BACKUP_DIR, "合同台账_v31重建前_%s.db" % ts)
+        if not os.path.exists(bak):
+            con.execute("VACUUM INTO '" + bak.replace("'", "''") + "'")
+            print("[INFO] v31：重建前已备份到 %s" % bak, file=sys.stderr)
+    except Exception as e:
+        print("[WARN] v31：重建前备份失败（%s），继续执行重建" % e, file=sys.stderr)
+    con.execute("PRAGMA foreign_keys=OFF")
+    con.execute("BEGIN")
+    try:
+        con.execute(new_ddl)
+        con.execute("INSERT INTO project_attachments_new (%s) SELECT %s FROM project_attachments" % (cols, cols))
+        con.execute("DROP TABLE project_attachments")
+        con.execute("ALTER TABLE project_attachments_new RENAME TO project_attachments")
+        bad = con.execute("PRAGMA foreign_key_check").fetchall()
+        if bad:
+            raise RuntimeError("v31 外键校验失败：%s" % (bad[:5],))
+        con.execute("COMMIT")
+        print("[INFO] v31：project_attachments 外键已改为 ON UPDATE CASCADE（%d 行数据保留）" % n_old,
+              file=sys.stderr)
+    except Exception:
+        con.execute("ROLLBACK")
+        raise
+    finally:
+        con.execute("PRAGMA foreign_keys=ON")
+
 MIGRATIONS = [
-    (1, "合同主表追加历史字段列：资金来源/是否归档/归档人/归档时间", _mig_v1_contract_extra_cols),
-    (2, "合同主表列改名：经办人/分管领导→经办人、甲方现场负责人→现场负责人", _mig_v2_contract_rename_cols),
+    # 注意：v1/v2/v4 的历史说明按“已执行版本”原样保留（当时表名为 contracts，v5 才改名为 project_contracts），
+    #       与库内 schema_version 记录逐字一致（项目规范 7.3：禁止修改已执行的历史版本，含说明文本）。
+    (1, "contracts 追加历史字段列：资金来源/是否归档/归档人/归档时间", _mig_v1_contract_extra_cols),
+    (2, "contracts 列改名：经办人/分管领导→经办人、甲方现场负责人→现场负责人", _mig_v2_contract_rename_cols),
     (3, "users 追加 分管部门 字段", _mig_v3_users_supervise_dept),
-    (4, "新增资产合同台账表 asset_contracts（依据资产合同台账.xlsx，字段参照 project_contracts 表约定）", _mig_v4_asset_contracts),
+    (4, "新增资产合同台账表 asset_contracts（依据资产合同台账.xlsx，字段参照 contracts 表约定）", _mig_v4_asset_contracts),
     (5, "合同主表改名：contracts → project_contracts（同步索引/触发器名与外键引用）", _mig_v5_rename_contracts_table),
     (6, "资产合同台账追加字段：管理部门/责任人（同步新增查询索引）", _mig_v6_asset_dept_person_cols),
     (7, "资产合同台账追加归档列：是否归档/归档人/归档时间（同步新增归档索引）", _mig_v7_asset_archive_cols),
@@ -1057,6 +1125,8 @@ MIGRATIONS = [
     _mig_v28_rename_attachments_table),
     (29, "短信正文末尾追加机构署名（settings.sms_sign_suffix 默认「（湘潭市机关事务管理局）」，并开启署名开关）", _mig_v29_sms_sign_suffix),
     (30, "删除已废弃的短信签名配置项 sms_sign_name（改用正文末尾署名 sms_sign_suffix）", _mig_v30_drop_sms_sign_name),
+    (31, "project_attachments 外键改为 ON UPDATE CASCADE（修复改合同编号时 HTTP 500：带附件的合同无法改号）",
+     _mig_v31_attachments_fk_cascade, {"own_transaction": True}),
 ]
 
 def _run_versioned_migrations(con):
@@ -1836,6 +1906,75 @@ def _int(v):
     if v=="" or v is None: return None
     try: return int(float(v))
     except: return None
+
+def _norm_date_ymd(v):
+    """日期规范化（项目合同接口校验用，D-9）：接受 yyyy-m-d / yyyy/m/d / yyyy.m.d（可带时间后缀与空格），
+    返回 yyyy-mm-dd；空值返回 ''；无法解析返回 None。"""
+    s = str(v or "").strip()
+    if not s: return ""
+    m = re.match(r"^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[ T].*)?$", s)
+    if not m: return None
+    try:
+        return datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3))).strftime("%Y-%m-%d")
+    except ValueError:
+        return None
+
+def _validate_contract_fields(vals, current=None):
+    """项目合同字段的数据质量校验与规范化（D-9 日期 / D-10 金额 / D-11 枚举），就地修改 vals。
+    返回错误信息（中文）或 None。
+    current：编辑场景下库内原值（dict）。**值未发生变化的历史字段跳过校验**，
+    以免既有脏数据（如金额文本、「部分结算」）在修改其它字段时被拦截。
+    """
+    cur = current or {}
+    def _s(v):
+        return "" if v is None else str(v).strip()
+    def changed(col, v):
+        return _s(v) != _s(cur.get(col, ""))
+    # 1) 日期（5 列）：格式 yyyy-mm-dd；宽松分隔符自动规范化
+    for col in IMPORT_DATE_FIELDS:
+        if col not in vals: continue
+        if not changed(col, vals.get(col)):
+            vals[col] = cur.get(col, ""); continue
+        nd = _norm_date_ymd(vals.get(col))
+        if nd is None:
+            return "字段「%s」日期格式应为 yyyy-mm-dd（如 2026-01-31）" % col
+        vals[col] = nd
+    # 2) 金额（5 列）：必须为数字且不小于 0
+    for col in IMPORT_NUM_FIELDS:
+        if col not in vals: continue
+        if not changed(col, vals.get(col)):
+            vals[col] = cur.get(col, ""); continue
+        s = _s(vals.get(col))
+        if not s:
+            vals[col] = ""; continue
+        try:
+            f = float(s)
+        except (TypeError, ValueError):
+            return "字段「%s」不是有效数字" % col
+        if f < 0:
+            return "字段「%s」不能为负数" % col
+        vals[col] = round(f, 2)
+    # 3) 枚举：项目分类/采购方式/资金来源 + 是否结算（Q4 含「部分结算」）+ 是否有签证或变更（Q12）
+    enum_all = dict(IMPORT_ENUM_CHECK)
+    enum_all["是否结算"] = ["是", "否", "部分结算"]
+    for col, allowed in enum_all.items():
+        if col not in vals: continue
+        v = _s(vals.get(col))
+        if not v: continue
+        if not changed(col, v): 
+            vals[col] = cur.get(col, ""); continue
+        if v not in allowed:
+            return "字段「%s」取值不在标准选项内（可选：%s）" % (col, "、".join(allowed))
+        vals[col] = v
+    for col in ("是否有签证或变更",):
+        if col not in vals: continue
+        v = _s(vals.get(col))
+        if not v: continue
+        if not changed(col, v):
+            vals[col] = cur.get(col, ""); continue
+        if v not in ("是", "否"):
+            return "字段「%s」应为「是」或「否」" % col
+    return None
 
 # ──── 合同编号（6 位）生成：年度后两位 + 科室（中心）序号 + 中心组室序号 + 顺序号 ────
 # 规则实现见 contract_no 模块；此处只负责取“编号归属部门”并查询对应表的既有编号。
@@ -2818,7 +2957,7 @@ def sms_send_urge(kind, obj, note, operator):
                      "rtype": rtype, "rname": rname, "phone": phone, "content": content,
                      "dedup": "", "trigger": "催办", "operator": operator})
     r = _sms_dispatch(msgs, "催办", operator)
-    r["ok"] = (r.get("failed", 0) == 0)
+    r["ok"] = (r.get("failed", 0) == 0) and not r.get("error")
     return r
 
 def sms_send_point(kind, obj, phones, content_body, operator):
@@ -2835,7 +2974,7 @@ def sms_send_point(kind, obj, phones, content_body, operator):
     if not msgs:
         return {"ok": False, "error": "未提供有效手机号", "total": 0, "sent": 0, "skipped": 0, "failed": 0}
     r = _sms_dispatch(msgs, "点对点", operator)
-    r["ok"] = (r.get("failed", 0) == 0)
+    r["ok"] = (r.get("failed", 0) == 0) and not r.get("error")
     return r
 
 def sms_send_free(phones, content_body, operator):
@@ -2851,7 +2990,7 @@ def sms_send_free(phones, content_body, operator):
     if not msgs:
         return {"ok": False, "error": "未提供有效手机号", "total": 0, "sent": 0, "skipped": 0, "failed": 0}
     r = _sms_dispatch(msgs, "点对点", operator)
-    r["ok"] = (r.get("failed", 0) == 0)
+    r["ok"] = (r.get("failed", 0) == 0) and not r.get("error")
     return r
 
 def _sms_conn_test():
@@ -3325,6 +3464,8 @@ def api_create_contract():
     rd["\u6240\u5c5e\u90e8\u95e8"]=u["\u6240\u5c5e\u90e8\u95e8"]
     if not rd.get("\u63d0\u9192\u63d0\u524d\u5929\u6570") or str(rd.get("\u63d0\u9192\u63d0\u524d\u5929\u6570","")).strip()=="":
         rd["\u63d0\u9192\u63d0\u524d\u5929\u6570"]=get_default_days()
+    _err = _validate_contract_fields(rd)          # D-9/D-10/D-11：日期/金额/枚举校验
+    if _err: return jsonify({"error": _err}), 400
     app_row(rd)
     write_log("合同台账", "新增", obj=d["number"], detail=rd.get("\u9879\u76ee\u540d\u79f0",""))
     for c in read_contracts():
@@ -3684,16 +3825,17 @@ def api_update_contract(cid):
     fm={"number":"\u7f16\u53f7","category":"\u9879\u76ee\u5206\u7c7b","name":"\u9879\u76ee\u540d\u79f0","decision_basis":"\u51b3\u7b56\u4f9d\u636e","bid_control_price":"\u51b3\u7b56\u7684\u62db\u6807\u63a7\u5236\u4ef7","price_basis":"\u62db\u6807\u63a7\u5236\u4ef7\u51b3\u7b56\u7684\u4f9d\u636e","procurement_method":"\u91c7\u8d2d\u65b9\u5f0f","winner":"\u4e2d\u6807\u5355\u4f4d","actual_implementor":"\u5b9e\u9645\u5b9e\u65bd\u5355\u4f4d","amount":"\u5408\u540c\u91d1\u989d\uff08\u4e07\u5143\uff09","fund_source":"\u8d44\u91d1\u6765\u6e90","main_content":"\u5408\u540c\u4e3b\u8981\u5185\u5bb9","procurement_date":"\u91c7\u8d2d\u65f6\u95f4","start_date":"\u5f00\u5de5\u65f6\u95f4","end_date":"\u5b8c\u5de5\u65f6\u95f4","acceptance_date":"\u7ae3\u5de5\u9a8c\u6536\u65f6\u95f4","site_manager":"\u73b0\u573a\u8d1f\u8d23\u4eba","has_change":"\u662f\u5426\u6709\u7b7e\u8bc1\u6216\u53d8\u66f4","change_detail":"\u7b7e\u8bc1\u6216\u53d8\u66f4\u60c5\u51b5","is_settled":"\u662f\u5426\u7ed3\u7b97","settled_amount":"\u7ed3\u7b97\u91d1\u989d","paid_amount":"\u5df2\u652f\u4ed8","unpaid_amount":"\u672a\u652f\u4ed8","term":"\u671f\u9650","handler":"\u7ecf\u529e\u4eba","remark":"\u5907\u6ce8","next_bid_date":"\u4e0b\u6b21\u62db\u91c7\u65f6\u95f4","remind_days":"\u63d0\u9192\u63d0\u524d\u5929\u6570"}
     for rk,ck in fm.items():
         if rk in d and d[rk] is not None: ud[ck]=d[rk]
+    _err = _validate_contract_fields(ud, t)       # D-9/D-10/D-11：日期/金额/枚举校验（未变更的历史字段跳过）
+    if _err: return jsonify({"error": _err}), 400
     old_num = str(t.get("\u7f16\u53f7",""))
     new_num = ud.get("\u7f16\u53f7")
-    if new_num is not None and str(new_num)!=old_num:
-        for c in read_contracts():
-            if c["_row"]!=rn and str(c.get("\u7f16\u53f7",""))==str(new_num):
-                return jsonify({"error":f"\u7f16\u53f7 '{new_num}' \u5df2\u5b58\u5728"}),400
-        rows = read_attachments(); changed=False
-        for r in rows:
-            if str(r.get("\u5408\u540c\u7f16\u53f7",""))==old_num: r["\u5408\u540c\u7f16\u53f7"]=str(new_num); changed=True
-        if changed: write_attachments(rows)
+    if new_num is not None:
+        # 业务规则：合同编号由《合同编号规则》自动生成（年度+科室+中心组室+顺序号），一经写入不可修改；
+        # 前端编号输入框亦为只读（templates/index.html：contractForm.number + readonly）。故接口层直接拒绝改号，
+        # 避免出现与规则不一致的编号；数据库侧 project_attachments 外键 ON UPDATE CASCADE（v31）仅作兜底。
+        if str(new_num).strip() != str(old_num).strip():
+            return jsonify({"error": "合同编号由《合同编号规则》自动生成，不允许修改"}), 400
+        ud.pop("\u7f16\u53f7", None)      # 与现编号一致：不参与 UPDATE，避免无意义写入
     upd_row(rn,ud)
     log_field_changes("合同台账", t.get("编号",""), t.get("项目名称",""), t, ud)
     write_log("合同台账", "修改", obj=str(t.get("\u7f16\u53f7","")))
@@ -4472,6 +4614,10 @@ def api_upload_asset_attachment(aid):
     ext = os.path.splitext(display)[1].lower()
     if ext not in ATTACH_ALLOWED_EXT:
         return jsonify({"error":"仅支持图片或PDF（jpg/jpeg/png/gif/webp/bmp/pdf）"}),400
+    if atype == "condition" and ext not in ATTACH_IMAGE_EXT:
+        # D-16：文档约定「资产现状图片」仅允许图片格式（jpg/jpeg/png/gif/webp/bmp），前端 accept 亦仅给图片；
+        # 此处补齐服务端硬校验，避免直接调接口绕过前端把 PDF 传进「现状图片」槽位。
+        return jsonify({"error":"「资产现状图片」仅支持图片格式（jpg/jpeg/png/gif/webp/bmp），不支持 PDF"}),400
     max_mb = get_attach_max_mb()
     max_bytes = max_mb * 1024 * 1024
     store_name = uuid.uuid4().hex + ext
@@ -5056,6 +5202,9 @@ def api_get_config():
     return jsonify({"default_remind_days":get_default_days(),"log_keep_days":get_log_keep_days(),
                     "default_attach_max_mb":get_attach_max_mb(),
                     "sms":{"enabled":cfg["enabled"],"base_url":cfg["base_url"],"access_key":cfg["ak"],
+                           # D-17：与文档 §4.4 一致，SecretKey 只回显掩码（前端仅在“非空且非掩码”时才提交，
+                           # 服务端 PUT 亦对 ""/"******" 拒写，故掩码不会覆盖真实密钥）
+                           "secret_key":("******" if cfg["sk"] else ""),
                            "weekly_enabled":cfg["weekly_enabled"],"weekday":cfg["weekday"],"hour":cfg["hour"],
                            "minute":cfg["minute"],"max_per_run":cfg["max_per_run"],"retry_max":cfg["retry_max"],
                            "receipt_token":cfg["receipt_token"],"timeout":cfg["timeout"],
